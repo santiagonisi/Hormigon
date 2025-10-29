@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Obras — Sistema de Hormigón{% endblock %}
+
+{% block content %}
+<div class="card shadow p-3">
+    <h4 class="mb-3 fw-semibold">Lista de Obras</h4>
+
+    <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 80px;">ID</th>
+                    <th>Nombre</th>
+                    <th style="width: 160px;">Fecha</th>
+                    <th style="width: 100px;" class="text-center">Editar</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Ejemplo de filas (luego se cargan desde la base de datos) -->
+                <tr>
+                    <td>1</td>
+                    <td>Obra Ejemplo 1</td>
+                    <td>01/08/2025</td>
+                    <td class="text-center">
+                        <button class="btn btn-warning btn-sm text-white">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>2</td>
+                    <td>Obra Ejemplo 2</td>
+                    <td>12/09/2025</td>
+                    <td class="text-center">
+                        <button class="btn btn-warning btn-sm text-white">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
+                    <td>3</td>
+                    <td>Obra Ejemplo 3</td>
+                    <td>25/10/2025</td>
+                    <td class="text-center">
+                        <button class="btn btn-warning btn-sm text-white">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+{% endblock %}
