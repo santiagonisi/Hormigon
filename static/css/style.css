@@ -1,4 +1,3 @@
-/* === GENERAL === */
 body {
     background-color: #f8f9fa;
     font-family: "Segoe UI", Roboto, sans-serif;
@@ -7,7 +6,6 @@ body {
     padding: 0;
 }
 
-/* === NAVBAR === */
 .navbar-custom {
     background-color: #000000;
     border-bottom: 5px solid #FFD700;
@@ -34,7 +32,6 @@ body {
     background-color: #444444;
 }
 
-/* === CARDS === */
 .card {
     background: #fff;
     border: none;
@@ -47,7 +44,6 @@ body {
     color: #000;
 }
 
-/* === FORMULARIOS === */
 .form-label {
     font-weight: 500;
     color: #333;
@@ -63,7 +59,6 @@ body {
     box-shadow: 0 0 0 0.2rem rgba(255, 215, 0, 0.25);
 }
 
-/* === TABLAS === */
 .table {
     border-color: #dee2e6;
     background-color: #fff;
@@ -86,7 +81,6 @@ body {
     background-color: #f1f1f1 !important;
 }
 
-/* === BOTONES === */
 .btn {
     border-radius: 6px;
     font-weight: 500;
@@ -129,7 +123,6 @@ body {
     background-color: #b02a37;
 }
 
-/* === PAGINACIÓN PERSONALIZADA === */
 .pagination .page-link {
     border-radius: 6px;
     margin: 0 3px;
@@ -150,7 +143,6 @@ body {
     color: #FFD700;
 }
 
-/* === BOTÓN VOLVER ARRIBA === */
 #btnTop {
     display: none;
     position: fixed;
@@ -174,7 +166,6 @@ body {
     color: #000;
 }
 
-/* === RESPONSIVE === */
 @media (max-width: 768px) {
     .navbar-custom img {
         height: 35px;
