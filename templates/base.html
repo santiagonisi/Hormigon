@@ -9,7 +9,6 @@
 </head>
 <body>
 
-    <!-- NAVBAR -->
     <nav class="navbar navbar-expand-lg navbar-custom">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('parte_diario') }}">
@@ -37,12 +36,10 @@
         </div>
     </nav>
 
-    <!-- CONTENIDO -->
     <div class="container my-4">
         {% block content %}{% endblock %}
     </div>
 
-    <!-- PAGINACIÓN GLOBAL -->
     <div class="d-flex justify-content-center my-4">
         <nav>
             <ul class="pagination">
@@ -55,13 +52,10 @@
         </nav>
     </div>
 
-    <!-- BOTÓN "VOLVER ARRIBA" -->
     <button onclick="topFunction()" id="btnTop" title="Volver arriba">↑</button>
 
-    <!-- SCRIPTS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Mostrar el botón al hacer scroll
         const btnTop = document.getElementById("btnTop");
 
         window.onscroll = function() {

@@ -5,7 +5,7 @@
 <div class="card shadow p-4">
     <h4 class="mb-4 fw-semibold text-center">Fórmulas de Dosificación</h4>
 
-    <!-- Formulario principal -->
+
     <form id="formFormula">
         <div class="row mb-3">
             <div class="col-md-6">
@@ -19,7 +19,7 @@
             </div>
         </div>
 
-        <!-- Tabla dinámica de materiales -->
+
         <div class="table-responsive">
             <table class="table table-bordered align-middle">
                 <thead class="table-light">
@@ -32,7 +32,6 @@
                     </tr>
                 </thead>
                 <tbody id="tablaMateriales">
-                    <!-- Filas agregadas dinámicamente -->
                 </tbody>
             </table>
         </div>
@@ -77,7 +76,6 @@ document.addEventListener('DOMContentLoaded', () => {
         tabla.appendChild(fila);
     });
 
-    // Eliminar fila
     tabla.addEventListener('click', (e) => {
         if (e.target.closest('.eliminar-fila')) {
             e.target.closest('tr').remove();
