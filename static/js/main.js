@@ -1,7 +1,6 @@
-// static/js/main.js
 document.addEventListener('DOMContentLoaded', () => {
-  // volver arriba
-  const btnTop = document.getElementById('btnTop');
+
+    const btnTop = document.getElementById('btnTop');
   window.onscroll = function () {
     if (!btnTop) return;
     if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
@@ -11,7 +10,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  // PARTE DIARIO: actualizar select de clases cuando cambia la obra
   const selectObra = document.getElementById('selectObra');
   const selectClase = document.getElementById('selectClase');
 
@@ -41,7 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // PROBETAS: mostrar/ocultar y generar 3 filas
   const checkProbetas = document.getElementById('checkProbetas');
   const probetasSection = document.getElementById('probetasSection');
   const tablaProbetas = document.getElementById('tablaProbetas');
@@ -73,12 +70,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Envío del formulario parte diario por fetch (json)
   const parteForm = document.getElementById('parteForm');
   if (parteForm) {
     parteForm.addEventListener('submit', (ev) => {
       ev.preventDefault();
-      // recolectar datos
+
       const fecha = document.getElementById('fecha').value;
       const obra_id = document.getElementById('selectObra').value;
       const clase_id = document.getElementById('selectClase').value;
@@ -131,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // FORMULAS: agregar filas dinámicas y eliminar
+
   const agregarFilaBtn = document.getElementById('agregarFila');
   const tablaMateriales = document.getElementById('tablaMateriales');
   if (agregarFilaBtn) {
@@ -164,7 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // envío de formulario formulas (temporal: solo muestra alerta)
     const formFormula = document.getElementById('formFormula');
     if (formFormula) {
       formFormula.addEventListener('submit', (ev) => {

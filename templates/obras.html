@@ -2,27 +2,37 @@
 {% block title %}Obras — Sistema de Hormigón{% endblock %}
 
 {% block content %}
-<div class="card shadow p-3">
-  <h4 class="mb-3 fw-semibold">Lista de Obras</h4>
+<div class="card shadow p-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-semibold">Gestión de Obras</h4>
+    <button id="btnAgregarObra" class="btn btn-warning text-dark fw-semibold">
+      <i class="bi bi-plus-circle me-1"></i> Agregar Obra
+    </button>
+  </div>
 
   <div class="table-responsive">
     <table class="table table-bordered align-middle">
-      <thead class="table-light">
+      <thead class="table-light text-center">
         <tr>
-          <th style="width:80px;">ID</th>
+          <th>ID</th>
           <th>Nombre</th>
-          <th style="width:160px;">Fecha</th>
-          <th style="width:100px;" class="text-center">Editar</th>
+          <th>Fecha de Inicio</th>
+          <th style="width:150px;">Acciones</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="tablaObras">
         {% for o in obras %}
-        <tr>
-          <td>{{ o.id }}</td>
+        <tr data-id="{{ o.id }}">
+          <td class="text-center">{{ o.id }}</td>
           <td>{{ o.nombre }}</td>
-          <td>{% if o.fecha %}{{ o.fecha.strftime('%d/%m/%Y') }}{% endif %}</td>
+          <td class="text-center">{{ o.fecha.strftime('%d/%m/%Y') if o.fecha else '' }}</td>
           <td class="text-center">
-            <a href="#" class="btn btn-warning btn-sm text-white"><i class="bi bi-pencil-square"></i></a>
+            <button class="btn btn-sm btn-dark btn-edit" data-id="{{ o.id }}">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <button class="btn btn-sm btn-danger btn-delete ms-1" data-id="{{ o.id }}">
+              <i class="bi bi-trash"></i>
+            </button>
           </td>
         </tr>
         {% endfor %}
@@ -30,4 +40,101 @@
     </table>
   </div>
 </div>
+
+<div class="modal fade" id="obraModal" tabindex="-1" aria-labelledby="obraModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <form id="obraForm" class="modal-content">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="obraModalLabel">Nueva Obra</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="obra_id" name="id">
+        <div class="mb-3">
+          <label class="form-label">Nombre de la Obra</label>
+          <input type="text" id="obra_nombre" name="nombre" class="form-control" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Fecha de Inicio</label>
+          <input type="date" id="obra_fecha" name="fecha" class="form-control">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" class="btn btn-warning text-dark fw-semibold">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const obraModal = new bootstrap.Modal(document.getElementById('obraModal'));
+  const obraForm = document.getElementById('obraForm');
+  const btnAgregar = document.getElementById('btnAgregarObra');
+  const tablaObras = document.getElementById('tablaObras');
+
+  btnAgregar.addEventListener('click', () => {
+    document.getElementById('obraModalLabel').textContent = 'Nueva Obra';
+    obraForm.reset();
+    document.getElementById('obra_id').value = '';
+    obraModal.show();
+  });
+
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      fetch(`/api/obras/${id}`)
+        .then(r => r.json())
+        .then(o => {
+          document.getElementById('obraModalLabel').textContent = 'Editar Obra';
+          document.getElementById('obra_id').value = o.id;
+          document.getElementById('obra_nombre').value = o.nombre;
+          document.getElementById('obra_fecha').value = o.fecha ? o.fecha.split('T')[0] : '';
+          obraModal.show();
+        })
+        .catch(err => console.error(err));
+    });
+  });
+
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      if (!confirm('¿Eliminar esta obra?')) return;
+      fetch(`/api/obras/${id}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(resp => {
+          if (resp.ok) window.location.reload();
+          else alert('Error: ' + resp.error);
+        });
+    });
+  });
+
+  obraForm.addEventListener('submit', ev => {
+    ev.preventDefault();
+    const payload = {
+      id: document.getElementById('obra_id').value || null,
+      nombre: document.getElementById('obra_nombre').value,
+      fecha: document.getElementById('obra_fecha').value || null
+    };
+    fetch('/api/obras', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(resp => {
+      if (resp.ok) {
+        obraModal.hide();
+        window.location.reload();
+      } else {
+        alert('Error: ' + resp.error);
+      }
+    })
+    .catch(err => console.error(err));
+  });
+});
+</script>
 {% endblock %}

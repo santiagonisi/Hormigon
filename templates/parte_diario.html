@@ -3,81 +3,283 @@
 
 {% block content %}
 <div class="card shadow p-4">
-  <h4 class="mb-4 text-center fw-semibold">Parte Diario de Hormigón</h4>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0 fw-semibold">Parte Diario de Hormigón</h4>
+  </div>
 
-  <form id="parteForm">
-    <div class="row mb-3">
-      <div class="col-md-2">
+  <form id="parteForm" class="mb-4">
+    <div class="row g-2">
+      <div class="col-sm-3 col-md-2">
         <label class="form-label">Fecha</label>
-        <input type="date" class="form-control" name="fecha" id="fecha" required>
+        <input type="date" id="fecha" name="fecha" class="form-control" required>
       </div>
-      <div class="col-md-4">
+
+      <div class="col-sm-6 col-md-4">
         <label class="form-label">Obra</label>
-        <select class="form-select" name="obra" id="selectObra" required>
+        <select id="selectObra" name="obra" class="form-select" required>
           <option value="">Seleccione una obra</option>
           {% for o in obras %}
             <option value="{{ o.id }}">{{ o.nombre }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-md-3">
+
+      <div class="col-sm-6 col-md-3">
         <label class="form-label">Clase (Tipo de Hormigón)</label>
-        <select class="form-select" name="clase" id="selectClase" required>
+        <select id="selectClase" name="clase" class="form-select" required>
           <option value="">Seleccione obra primero</option>
         </select>
       </div>
-      <div class="col-md-3">
-        <label class="form-label">Hora Despacho</label>
-        <input type="time" class="form-control" name="hora_despacho" id="hora_despacho">
-      </div>
-    </div>
 
-    <div class="row mb-3">
-      <div class="col-md-2">
+      <div class="col-sm-6 col-md-3">
+        <label class="form-label">Hora despacho</label>
+        <input type="time" id="hora_despacho" name="hora_despacho" class="form-control">
+      </div>
+
+      <div class="col-sm-6 col-md-2">
         <label class="form-label">Cantidad (m³)</label>
-        <input type="number" step="0.01" class="form-control" name="cantidad_m3" id="cantidad_m3">
+        <input type="number" step="0.01" id="cantidad_m3" name="cantidad_m3" class="form-control">
       </div>
-      <div class="col-md-2">
+
+      <div class="col-sm-6 col-md-2">
         <label class="form-label">Asentamiento (cm)</label>
-        <input type="number" step="0.1" class="form-control" name="asentamiento_cm" id="asentamiento_cm">
+        <input type="number" step="0.1" id="asentamiento_cm" name="asentamiento_cm" class="form-control">
       </div>
-      <div class="col-md-2 d-flex align-items-end">
+
+      <div class="col-sm-6 col-md-2 d-flex align-items-end">
         <div class="form-check">
           <input class="form-check-input" type="checkbox" id="checkProbetas">
-          <label class="form-check-label" for="checkProbetas">Usa probetas</label>
+          <label class="form-check-label">Usa probetas</label>
         </div>
       </div>
-    </div>
 
-    <div id="probetasSection" class="mt-3" style="display:none;">
-      <h5 class="fw-semibold">Probetas</h5>
-      <div class="table-responsive">
-        <table class="table table-bordered align-middle">
-          <thead class="table-light">
-            <tr>
-              <th style="width:50px;">#</th>
-              <th>Fecha Ensayo</th>
-              <th>Edad (días)</th>
-              <th>Lectura Prensa (kN)</th>
-              <th>Resistencia (MPa)</th>
-            </tr>
-          </thead>
-          <tbody id="tablaProbetas"></tbody>
-        </table>
+      <div class="col-12 text-end">
+        <button type="submit" class="btn btn-warning text-dark fw-semibold">Agregar Parte</button>
+        <button type="reset" id="btnReset" class="btn btn-secondary ms-2">Limpiar</button>
       </div>
     </div>
-
-    <div class="text-end mt-4">
-      <button type="submit" class="btn btn-dark">Guardar</button>
-      <button type="reset" class="btn btn-secondary ms-2">Limpiar</button>
-    </div>
   </form>
+
+  <div id="probetasSection" class="mt-3 mb-3" style="display:none;">
+    <h6 class="fw-semibold">Probetas (hasta 3)</h6>
+    <div class="table-responsive">
+      <table class="table table-bordered align-middle">
+        <thead class="table-light">
+          <tr>
+            <th style="width:50px;">#</th>
+            <th>Fecha Ensayo</th>
+            <th>Edad (días)</th>
+            <th>Lectura Prensa (kN)</th>
+            <th>Resistencia (MPa)</th>
+          </tr>
+        </thead>
+        <tbody id="tablaProbetas"></tbody>
+      </table>
+    </div>
+    <small class="text-muted">Lectura y Resistencia no son obligatorias; podés completarlas después.</small>
+  </div>
+</div>
+
+
+<div class="card shadow p-3 mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="mb-0">Ultimos Partes</h5>
+    <div><small class="text-muted">Mostrando página {{ page }} / {{ total_pages }}</small></div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-bordered align-middle">
+      <thead class="table-light text-center">
+        <tr>
+          <th>ID</th>
+          <th>Fecha</th>
+          <th>Obra</th>
+          <th>Clase</th>
+          <th>Cantidad (m³)</th>
+          <th>Asentamiento (cm)</th>
+          <th>Probetas</th>
+          <th style="width:140px;">Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaPartes">
+        {% for p in partes.items %}
+        <tr>
+          <td class="text-center">{{ p.id }}</td>
+          <td class="text-center">{{ p.fecha.strftime('%d/%m/%Y') }}</td>
+          <td>{{ p.obra.nombre }}</td>
+          <td>{{ p.clase.nombre }}</td>
+          <td class="text-end">{{ '%.2f'|format(p.cantidad_m3 or 0) }}</td>
+          <td class="text-end">{{ p.asentamiento_cm or '' }}</td>
+          <td class="text-center">{{ 'Sí' if p.usa_probetas else 'No' }}</td>
+          <td class="text-center">
+            <button class="btn btn-sm btn-dark btn-edit me-1" data-id="{{ p.id }}"><i class="bi bi-pencil-square"></i></button>
+            <button class="btn btn-sm btn-danger btn-delete" data-id="{{ p.id }}"><i class="bi bi-trash"></i></button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <nav aria-label="Paginación partes">
+    <ul class="pagination">
+      <li class="page-item {% if not partes.has_prev %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('parte_diario', page=partes.prev_num) if partes.has_prev else '#' }}">Anterior</a>
+      </li>
+      {% for pnum in range(1, total_pages+1) %}
+      <li class="page-item {% if pnum == page %}active{% endif %}">
+        <a class="page-link" href="{{ url_for('parte_diario', page=pnum) }}">{{ pnum }}</a>
+      </li>
+      {% endfor %}
+      <li class="page-item {% if not partes.has_next %}disabled{% endif %}">
+        <a class="page-link" href="{{ url_for('parte_diario', page=partes.next_num) if partes.has_next else '#' }}">Siguiente</a>
+      </li>
+    </ul>
+  </nav>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-  // lógica de guardado se maneja en static/js/main.js
-  // apenas se envíe el form main.js enviará json a /api/guardar_parte
+document.addEventListener('DOMContentLoaded', () => {
+
+    const selectObra = document.getElementById('selectObra');
+  const selectClase = document.getElementById('selectClase');
+
+  const chkProbetas = document.getElementById('checkProbetas');
+  const probetasSection = document.getElementById('probetasSection');
+  const tablaProbetas = document.getElementById('tablaProbetas');
+
+  function generarFilasProbetas() {
+    tablaProbetas.innerHTML = '';
+    for (let i = 1; i <= 3; i++) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="text-center">${i}</td>
+        <td><input type="date" class="form-control" name="fecha_ensayo_${i}"></td>
+        <td><input type="number" class="form-control" name="edad_${i}" step="1"></td>
+        <td><input type="number" class="form-control" name="lectura_${i}" step="0.01"></td>
+        <td><input type="number" class="form-control" name="resistencia_${i}" step="0.01"></td>
+      `;
+      tablaProbetas.appendChild(tr);
+    }
+  }
+
+  if (chkProbetas) {
+    chkProbetas.addEventListener('change', () => {
+      if (chkProbetas.checked) {
+        probetasSection.style.display = 'block';
+        generarFilasProbetas();
+      } else {
+        probetasSection.style.display = 'none';
+        tablaProbetas.innerHTML = '';
+      }
+    });
+  }
+
+
+  if (selectObra) {
+    selectObra.addEventListener('change', (e) => {
+      const obraId = e.target.value;
+      selectClase.innerHTML = '<option>Cargando...</option>';
+      if (!obraId) {
+        selectClase.innerHTML = '<option value="">Seleccione obra primero</option>';
+        return;
+      }
+      fetch(`/api/get_clases/${obraId}`)
+        .then(r => r.json())
+        .then(data => {
+          selectClase.innerHTML = '<option value="">Seleccione clase</option>';
+          data.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.id;
+            opt.textContent = c.nombre;
+            selectClase.appendChild(opt);
+          });
+        })
+        .catch(err => {
+          console.error(err);
+          selectClase.innerHTML = '<option value="">Error al cargar</option>';
+        });
+    });
+  }
+
+
+  const parteForm = document.getElementById('parteForm');
+  if (parteForm) {
+    parteForm.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const fecha = document.getElementById('fecha').value;
+      const obra_id = selectObra.value;
+      const clase_id = selectClase.value;
+      const hora_despacho = document.getElementById('hora_despacho').value;
+      const cantidad_m3 = document.getElementById('cantidad_m3').value;
+      const asentamiento_cm = document.getElementById('asentamiento_cm').value;
+      const usa_probetas = chkProbetas.checked;
+
+      const probetas = [];
+      if (usa_probetas) {
+        const rows = tablaProbetas.querySelectorAll('tr');
+        rows.forEach((r, idx) => {
+          const fecha_ensayo = r.querySelector(`input[name="fecha_ensayo_${idx+1}"]`).value;
+          const edad = r.querySelector(`input[name="edad_${idx+1}"]`).value;
+          const lectura = r.querySelector(`input[name="lectura_${idx+1}"]`).value;
+          const resistencia = r.querySelector(`input[name="resistencia_${idx+1}"]`).value;
+
+          probetas.push({
+            fecha_ensayo: fecha_ensayo || null,
+            edad: edad || null,
+            lectura: lectura || null,
+            resistencia: resistencia || null
+          });
+        });
+      }
+
+      const payload = { fecha, obra_id, clase_id, hora_despacho, cantidad_m3, asentamiento_cm, usa_probetas, probetas };
+
+      fetch('/api/guardar_parte', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      })
+      .then(r => r.json())
+      .then(resp => {
+        if (resp.ok) {
+
+            window.location.reload();
+        } else {
+          alert('Error: ' + (resp.error || 'No se pudo guardar'));
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('Error al guardar. Revisá la consola.');
+      });
+    });
+  }
+
+  document.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+      if (!confirm('Eliminar parte id ' + id + ' ?')) return;
+      fetch('/api/eliminar_parte/' + id, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(resp => {
+          if (resp.ok) window.location.reload();
+          else alert('Error al eliminar');
+        });
+    });
+  });
+
+
+  document.querySelectorAll('.btn-edit').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+
+      alert('Función editar (implementación pendiente) — id: ' + id);
+    });
+  });
+
+});
 </script>
 {% endblock %}

@@ -1,61 +1,92 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>{% block title %}Sistema de Hormigón{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <meta charset="UTF-8">
+    <title>{% block title %}Sistema de Hormigón{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+
+        #scrollTopButton {
+        opacity: 0;
+        visibility: hidden;
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 9999;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+      }
+      #scrollTopButton.show {
+        opacity: 1;
+        visibility: visible;
+      }
+    </style>
 </head>
 <body>
-  <nav class="navbar navbar-expand-lg navbar-custom">
-    <div class="container-fluid">
-      <a class="navbar-brand d-flex align-items-center" href="{{ url_for('parte_diario') }}">
-        <img src="{{ url_for('static', filename='images/isologo-IARSA.png') }}" alt="Logo IARSA">
-        <span class="ms-2 text-white fw-bold">Sistema de Hormigón</span>
-      </a>
-      <button class="navbar-toggler bg-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-        <span class="navbar-toggler-icon"></span>
-      </button>
 
-      <div class="collapse navbar-collapse" id="navbarNav">
-        <ul class="navbar-nav ms-3">
-          <li class="nav-item">
-            <a class="nav-link {% if request.path == '/parte_diario' %}active{% endif %}" href="{{ url_for('parte_diario') }}">Parte Diario</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.path == '/obras' %}active{% endif %}" href="{{ url_for('obras_page') }}">Obras</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if request.path == '/formulas' %}active{% endif %}" href="{{ url_for('formulas_page') }}">Fórmulas</a>
-          </li>
-        </ul>
-      </div>
-    </div>
-  </nav>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('parte_diario') }}">
+                <img src="{{ url_for('static', filename='images/isologo-IARSA.png') }}" alt="Logo" width="40" height="40" class="me-2">
+            </a>
 
-  <main class="container my-4">
-    {% block content %}{% endblock %}
-  </main>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
+                aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-  <!-- Paginación global de ejemplo (puede removerse en páginas que no la usen) -->
-  <div class="d-flex justify-content-center my-4">
-    <nav>
-      <ul class="pagination">
-        <li class="page-item disabled"><a class="page-link" href="#">Anterior</a></li>
-        <li class="page-item active"><a class="page-link" href="#">1</a></li>
-        <li class="page-item"><a class="page-link" href="#">2</a></li>
-        <li class="page-item"><a class="page-link" href="#">Siguiente</a></li>
-      </ul>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path.startswith('/parte_diario') %}active{% endif %}" href="{{ url_for('parte_diario') }}">Parte Diario</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path.startswith('/obras') %}active{% endif %}" href="{{ url_for('obras_page') }}">Obras</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path.startswith('/formulas') %}active{% endif %}" href="{{ url_for('formulas_page') }}">Fórmulas</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path.startswith('/informes') %}active{% endif %}" href="{{ url_for('informes_page') }}">Informes</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </nav>
-  </div>
 
-  <!-- Botón volver arriba -->
-  <button onclick="topFunction()" id="btnTop" title="Volver arriba">↑</button>
+    <div class="container my-4">
+        {% block content %}{% endblock %}
+    </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-  {% block scripts %}{% endblock %}
+    {% block global_pagination %}
+
+    {% endblock %}
+
+    <a href="#" id="scrollTopButton" class="btn btn-primary rounded-circle shadow" title="Volver arriba">
+      <i class="bi bi-arrow-up"></i>
+    </a>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const btn = document.getElementById("scrollTopButton");
+        if (!btn) return;
+        window.addEventListener("scroll", function () {
+          if (window.scrollY > 50) btn.classList.add("show");
+          else btn.classList.remove("show");
+        });
+        btn.addEventListener("click", function (e) {
+          e.preventDefault();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      });
+    </script>
+
+    {% block scripts %}{% endblock %}
 </body>
 </html>

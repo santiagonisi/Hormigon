@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, abort
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
@@ -11,24 +11,20 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# -----------------------
-# MODELS
-# -----------------------
+
 class Obra(db.Model):
     __tablename__ = 'obras'
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(200), nullable=False)
     fecha = db.Column(db.Date, nullable=True)
-    # relación many-to-many con Clase a través de obra_clase
     clases = db.relationship('Clase', secondary='obra_clase', back_populates='obras')
 
 class Clase(db.Model):
     __tablename__ = 'clases'
     id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), nullable=False)  # ej: H21, H25
-    descripcion = db.Column(db.Text, nullable=True)
+    nombre = db.Column(db.String(100), nullable=False) 
+    descripcion = db.Column(db.String(250))
     obras = db.relationship('Obra', secondary='obra_clase', back_populates='clases')
-    # relación con Formula (dosificaciones)
     formula = db.relationship('Formula', uselist=False, back_populates='clase')
 
 class ObraClase(db.Model):
@@ -64,7 +60,9 @@ class ParteDiario(db.Model):
     asentamiento_cm = db.Column(db.Float, nullable=True)
     usa_probetas = db.Column(db.Boolean, default=False)
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)
-    # relaciones
+
+    obra = db.relationship('Obra', backref='partes')
+    clase = db.relationship('Clase')
     probetas = db.relationship('Probeta', cascade='all, delete-orphan')
 
 class Probeta(db.Model):
@@ -76,19 +74,16 @@ class Probeta(db.Model):
     lectura_prensa_kn = db.Column(db.Float, nullable=True)
     resistencia_mpa = db.Column(db.Float, nullable=True)
 
-# -----------------------
-# DB inicialización y seed mínimo
-# -----------------------
+
 def create_and_seed_db():
     if not os.path.exists(DB_PATH):
         db.create_all()
-        # Seed básico (puedes modificar o eliminar)
+
         o1 = Obra(nombre='Obra Central', fecha=datetime.strptime('2025-08-01', '%Y-%m-%d').date())
-        o2 = Obra(nombre='Obra Norte',  fecha=datetime.strptime('2025-09-12', '%Y-%m-%d').date())
-        c1 = Clase(nombre='H21')
-        c2 = Clase(nombre='H25')
-        c3 = Clase(nombre='H30')
-        # Relacionar: Obra Central tiene H21 y H25; Obra Norte H25 y H30
+        o2 = Obra(nombre='Obra Norte', fecha=datetime.strptime('2025-09-12', '%Y-%m-%d').date())
+        c1 = Clase(nombre='H21', descripcion='Hormigón H21')
+        c2 = Clase(nombre='H25', descripcion='Hormigón H25')
+        c3 = Clase(nombre='H30', descripcion='Hormigón H30')
         db.session.add_all([o1, o2, c1, c2, c3])
         db.session.commit()
         db.session.add_all([
@@ -97,7 +92,7 @@ def create_and_seed_db():
             ObraClase(obra_id=o2.id, clase_id=c2.id),
             ObraClase(obra_id=o2.id, clase_id=c3.id),
         ])
-        # Agregar una fórmula ejemplo para H25
+
         f = Formula(clase_id=c2.id, nombre='Dosificación H25 - Ejemplo')
         db.session.add(f); db.session.commit()
         fi1 = FormulaItem(formula_id=f.id, material='Cemento', cantidad=350, unidad='kg')
@@ -105,20 +100,22 @@ def create_and_seed_db():
         fi3 = FormulaItem(formula_id=f.id, material='Arena', cantidad=800, unidad='kg')
         db.session.add_all([fi1, fi2, fi3])
         db.session.commit()
-        print('Base de datos creada y seed inicial aplicado.')
+        print('DB creada y seed aplicada.')
 
-# -----------------------
-# RUTAS
-# -----------------------
 @app.route('/')
 def index():
     return redirect(url_for('parte_diario'))
 
 @app.route('/parte_diario')
 def parte_diario():
+
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
     obras = Obra.query.order_by(Obra.nombre).all()
-    # no pasamos clases: se obtienen via AJAX según obra seleccionada
-    return render_template('parte_diario.html', obras=obras)
+    partes = ParteDiario.query.order_by(ParteDiario.fecha.desc(), ParteDiario.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    total_pages = partes.pages if partes.pages >= 1 else 1
+    return render_template('parte_diario.html', obras=obras, partes=partes, page=page, total_pages=total_pages)
 
 @app.route('/obras')
 def obras_page():
@@ -127,11 +124,13 @@ def obras_page():
 
 @app.route('/formulas')
 def formulas_page():
-    # listamos formulas y clases
     clases = Clase.query.order_by(Clase.nombre).all()
     return render_template('formulas.html', clases=clases)
 
-# API: obtener clases asociadas a una obra
+@app.route('/informes')
+def informes_page():
+    return render_template('informes.html')
+
 @app.route('/api/get_clases/<int:obra_id>')
 def api_get_clases(obra_id):
     clases = (db.session.query(Clase.id, Clase.nombre)
@@ -141,7 +140,6 @@ def api_get_clases(obra_id):
     result = [{'id': c.id, 'nombre': c.nombre} for c in clases]
     return jsonify(result)
 
-# API: guardar parte diario (POST JSON)
 @app.route('/api/guardar_parte', methods=['POST'])
 def api_guardar_parte():
     data = request.json
@@ -161,7 +159,7 @@ def api_guardar_parte():
         )
         db.session.add(parte)
         db.session.commit()
-        # guardar probetas si vienen
+
         probetas = data.get('probetas') or []
         for p in probetas:
             fecha_ens = datetime.strptime(p.get('fecha_ensayo'), '%Y-%m-%d').date() if p.get('fecha_ensayo') else None
@@ -177,16 +175,18 @@ def api_guardar_parte():
         db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 400
 
-# endpoint para obtener obras (opcional, usado si se requiere)
-@app.route('/api/obras')
-def api_obras():
-    obras = Obra.query.order_by(Obra.nombre).all()
-    return jsonify([{'id': o.id, 'nombre': o.nombre} for o in obras])
 
-# -----------------------
-# MAIN
-# -----------------------
-if __name__ == "__main__":
+@app.route('/api/eliminar_parte/<int:parte_id>', methods=['DELETE'])
+def api_eliminar_parte(parte_id):
+    parte = ParteDiario.query.get(parte_id)
+    if not parte:
+        return jsonify({'ok': False, 'error': 'No encontrado'}), 404
+    db.session.delete(parte)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+if __name__ == '__main__':
+
     with app.app_context():
         create_and_seed_db()
     app.run(debug=True)
