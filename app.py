@@ -186,6 +186,7 @@ def api_obras():
 # -----------------------
 # MAIN
 # -----------------------
-if __name__ == '__main__':
-    create_and_seed_db()
+if __name__ == "__main__":
+    with app.app_context():
+        create_and_seed_db()
     app.run(debug=True)
