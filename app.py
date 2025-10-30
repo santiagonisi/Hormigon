@@ -85,9 +85,9 @@ def create_and_seed_db():
         # Seed básico (puedes modificar o eliminar)
         o1 = Obra(nombre='Obra Central', fecha=datetime.strptime('2025-08-01', '%Y-%m-%d').date())
         o2 = Obra(nombre='Obra Norte',  fecha=datetime.strptime('2025-09-12', '%Y-%m-%d').date())
-        c1 = Clase(nombre='H21', descripcion='Hormigón H21')
-        c2 = Clase(nombre='H25', description='Hormigón H25')
-        c3 = Clase(nombre='H30', description='Hormigón H30')
+        c1 = Clase(nombre='H21')
+        c2 = Clase(nombre='H25')
+        c3 = Clase(nombre='H30')
         # Relacionar: Obra Central tiene H21 y H25; Obra Norte H25 y H30
         db.session.add_all([o1, o2, c1, c2, c3])
         db.session.commit()
