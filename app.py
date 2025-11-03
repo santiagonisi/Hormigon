@@ -79,19 +79,18 @@ def create_and_seed_db():
     if not os.path.exists(DB_PATH):
         db.create_all()
 
-        o1 = Obra(nombre='Obra Central', fecha=datetime.strptime('2025-08-01', '%Y-%m-%d').date())
-        o2 = Obra(nombre='Obra Norte', fecha=datetime.strptime('2025-09-12', '%Y-%m-%d').date())
-        c1 = Clase(nombre='H21', descripcion='Hormigón H21')
-        c2 = Clase(nombre='H25', descripcion='Hormigón H25')
-        c3 = Clase(nombre='H30', descripcion='Hormigón H30')
-        db.session.add_all([o1, o2, c1, c2, c3])
+        
+        c1 = Clase(nombre='H8', descripcion='Hormigón H8')
+        c2 = Clase(nombre='H13', descripcion='Hormigón H13')
+        c3 = Clase(nombre='H15', descripcion='Hormigón H15')
+        c4 = Clase(nombre='H17', descripcion='Hormigón H17')
+        c5 = Clase(nombre='H20', descripcion='Hormigón H20')
+        c6 = Clase(nombre='H21', descripcion='Hormigón H21')
+        c7 = Clase(nombre='H25', descripcion='Hormigón H25')
+        c8 = Clase(nombre='H30', descripcion='Hormigón H30')
+        db.session.add_all([c1, c2, c3, c4, c5, c6 , c7, c8])
         db.session.commit()
-        db.session.add_all([
-            ObraClase(obra_id=o1.id, clase_id=c1.id),
-            ObraClase(obra_id=o1.id, clase_id=c2.id),
-            ObraClase(obra_id=o2.id, clase_id=c2.id),
-            ObraClase(obra_id=o2.id, clase_id=c3.id),
-        ])
+       
 
         f = Formula(clase_id=c2.id, nombre='Dosificación H25 - Ejemplo')
         db.session.add(f); db.session.commit()
@@ -120,7 +119,8 @@ def parte_diario():
 @app.route('/obras')
 def obras_page():
     obras = Obra.query.order_by(Obra.id.desc()).all()
-    return render_template('obras.html', obras=obras)
+    clases = Clase.query.order_by(Clase.nombre).all()
+    return render_template('obras.html', obras=obras, clases=clases)
 
 @app.route('/formulas')
 def formulas_page():
@@ -184,6 +184,116 @@ def api_eliminar_parte(parte_id):
     db.session.delete(parte)
     db.session.commit()
     return jsonify({'ok': True})
+
+@app.route('/api/formulas')
+def api_formulas():
+    formulas = Formula.query.join(Clase).all()
+    result = []
+    for f in formulas:
+        result.append({
+            'id': f.id,
+            'clase_id': f.clase_id,
+            'clase_nombre': f.clase.nombre,
+            'nombre': f.nombre,
+            'items': [{'material': i.material, 'cantidad': i.cantidad, 'unidad': i.unidad} 
+                     for i in f.items]
+        })
+    return jsonify(result)
+
+@app.route('/api/guardar_formula', methods=['POST'])
+def api_guardar_formula():
+    try:
+        data = request.json
+        formula = Formula(
+            clase_id=data['clase_id'],
+            nombre=data['nombre']
+        )
+        db.session.add(formula)
+        db.session.commit()
+
+        for item in data['items']:
+            formula_item = FormulaItem(
+                formula_id=formula.id,
+                material=item['material'],
+                cantidad=item['cantidad'],
+                unidad=item['unidad']
+            )
+            db.session.add(formula_item)
+        
+        db.session.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+@app.route('/api/obras/<int:obra_id>')
+def api_get_obra(obra_id):
+    obra = Obra.query.get_or_404(obra_id)
+    return jsonify({
+        'id': obra.id,
+        'nombre': obra.nombre,
+        'fecha': obra.fecha.isoformat() if obra.fecha else None,
+        'clases': [c.id for c in obra.clases]
+    })
+
+@app.route('/api/obras', methods=['POST'])
+def api_guardar_obra():
+    try:
+        data = request.json
+        if data.get('id'):
+            obra = Obra.query.get_or_404(data['id'])
+            obra.nombre = data['nombre']
+            obra.fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date() if data['fecha'] else None
+        else:
+            obra = Obra(
+                nombre=data['nombre'],
+                fecha=datetime.strptime(data['fecha'], '%Y-%m-%d').date() if data['fecha'] else None
+            )
+            db.session.add(obra)
+        
+        # Actualizar clases asociadas
+        clases = Clase.query.filter(Clase.id.in_(data['clases'])).all()
+        obra.clases = clases
+        
+        db.session.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+@app.route('/api/obras/<int:obra_id>', methods=['DELETE'])
+def api_eliminar_obra(obra_id):
+    try:
+        obra = Obra.query.get_or_404(obra_id)
+        
+        # Eliminamos primero los partes diarios asociados
+        ParteDiario.query.filter_by(obra_id=obra_id).delete()
+        
+        # Eliminamos la obra
+        db.session.delete(obra)
+        db.session.commit()
+        
+        return jsonify({'ok': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 400
+
+@app.route('/api/formulas/<int:formula_id>', methods=['DELETE'])
+def api_eliminar_formula(formula_id):
+    try:
+        formula = Formula.query.get_or_404(formula_id)
+        
+        # Eliminamos primero los items de la fórmula
+        FormulaItem.query.filter_by(formula_id=formula_id).delete()
+        
+        # Eliminamos la fórmula
+        db.session.delete(formula)
+        db.session.commit()
+        
+        return jsonify({'ok': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 400
 
 if __name__ == '__main__':
 

@@ -17,6 +17,7 @@
           <th>ID</th>
           <th>Nombre</th>
           <th>Fecha de Inicio</th>
+          <th>Clases de Hormigón</th>
           <th style="width:150px;">Acciones</th>
         </tr>
       </thead>
@@ -26,6 +27,11 @@
           <td class="text-center">{{ o.id }}</td>
           <td>{{ o.nombre }}</td>
           <td class="text-center">{{ o.fecha.strftime('%d/%m/%Y') if o.fecha else '' }}</td>
+          <td class="small">
+            {% for clase in o.clases %}
+            <span class="badge bg-secondary me-1">{{ clase.nombre }}</span>
+            {% endfor %}
+          </td>
           <td class="text-center">
             <button class="btn btn-sm btn-dark btn-edit" data-id="{{ o.id }}">
               <i class="bi bi-pencil-square"></i>
@@ -58,6 +64,15 @@
           <label class="form-label">Fecha de Inicio</label>
           <input type="date" id="obra_fecha" name="fecha" class="form-control">
         </div>
+        <div class="mb-3">
+          <label class="form-label">Clases de Hormigón</label>
+          <select id="obra_clases" name="clases" class="form-select" multiple size="6">
+            {% for clase in clases %}
+            <option value="{{ clase.id }}">{{ clase.nombre }} - {{ clase.descripcion }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Mantén presionado Ctrl para seleccionar múltiples clases</div>
+        </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -80,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('obraModalLabel').textContent = 'Nueva Obra';
     obraForm.reset();
     document.getElementById('obra_id').value = '';
+    Array.from(document.getElementById('obra_clases').options)
+      .forEach(opt => opt.selected = false);
     obraModal.show();
   });
 
@@ -93,6 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('obra_id').value = o.id;
           document.getElementById('obra_nombre').value = o.nombre;
           document.getElementById('obra_fecha').value = o.fecha ? o.fecha.split('T')[0] : '';
+          
+          // Seleccionar las clases de la obra
+          const selectClases = document.getElementById('obra_clases');
+          Array.from(selectClases.options).forEach(opt => {
+            opt.selected = o.clases.includes(parseInt(opt.value));
+          });
+          
           obraModal.show();
         })
         .catch(err => console.error(err));
@@ -101,24 +125,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      if (!confirm('¿Eliminar esta obra?')) return;
-      fetch(`/api/obras/${id}`, { method: 'DELETE' })
+        const id = btn.dataset.id;
+        if (!confirm('¿Está seguro que desea eliminar esta obra?')) return;
+        
+        fetch(`/api/obras/${id}`, { 
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'}
+        })
         .then(r => r.json())
         .then(resp => {
-          if (resp.ok) window.location.reload();
-          else alert('Error: ' + resp.error);
+            if (resp.ok) {
+                // Eliminamos la fila de la tabla
+                const row = btn.closest('tr');
+                row.remove();
+            } else {
+                alert('Error al eliminar: ' + resp.error);
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert('Error al eliminar la obra');
         });
     });
   });
 
   obraForm.addEventListener('submit', ev => {
     ev.preventDefault();
+    const clasesSelect = document.getElementById('obra_clases');
+    const clasesSeleccionadas = Array.from(clasesSelect.selectedOptions).map(opt => parseInt(opt.value));
+    
     const payload = {
       id: document.getElementById('obra_id').value || null,
       nombre: document.getElementById('obra_nombre').value,
-      fecha: document.getElementById('obra_fecha').value || null
+      fecha: document.getElementById('obra_fecha').value || null,
+      clases: clasesSeleccionadas
     };
+    
     fetch('/api/obras', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -8,13 +8,17 @@
   <form id="formFormula">
     <div class="row mb-3">
       <div class="col-md-6">
-        <label for="tipoHormigon" class="form-label">Tipo de Hormigón</label>
-        <input type="text" id="tipoHormigon" name="tipoHormigon" class="form-control" placeholder="Ej: H-21, H-25, H-30..." required>
+        <label for="claseHormigon" class="form-label">Clase de Hormigón</label>
+        <select id="claseHormigon" name="clase_id" class="form-select" required>
+          <option value="">Seleccione una clase...</option>
+          {% for clase in clases %}
+          <option value="{{ clase.id }}">{{ clase.nombre }} - {{ clase.descripcion }}</option>
+          {% endfor %}
+        </select>
       </div>
-      <div class="col-md-6 d-flex align-items-end justify-content-end">
-        <button type="button" id="agregarFila" class="btn btn-dark">
-          <i class="bi bi-plus-circle"></i> Agregar Material
-        </button>
+      <div class="col-md-6">
+        <label for="nombreFormula" class="form-label">Nombre de la Fórmula</label>
+        <input type="text" id="nombreFormula" name="nombre" class="form-control" required>
       </div>
     </div>
 
@@ -29,8 +33,15 @@
             <th style="width:100px;">Acción</th>
           </tr>
         </thead>
-        <tbody id="tablaMateriales"></tbody>
+        <tbody id="tablaMateriales">
+        </tbody>
       </table>
+    </div>
+
+    <div class="text-center mt-3">
+      <button type="button" id="agregarMaterial" class="btn btn-dark">
+        <i class="bi bi-plus-circle"></i> Agregar Material
+      </button>
     </div>
 
     <div class="text-end mt-4">
@@ -38,5 +49,125 @@
       <button type="reset" class="btn btn-secondary ms-2">Limpiar</button>
     </div>
   </form>
+
+  <hr class="my-4">
+  
+  <h5>Fórmulas Existentes</h5>
+  <div id="formulasExistentes"></div>
 </div>
+
+<script>
+let contadorFilas = 0;
+
+document.getElementById('agregarMaterial').addEventListener('click', () => {
+  contadorFilas++;
+  const fila = `
+    <tr data-fila="${contadorFilas}">
+      <td>${contadorFilas}</td>
+      <td><input type="text" class="form-control" name="material[]" required></td>
+      <td><input type="number" step="0.01" class="form-control" name="cantidad[]" required></td>
+      <td>
+        <select class="form-select" name="unidad[]" required>
+          <option value="kg">kg</option>
+          <option value="lts">lts</option>
+          <option value="m3">m³</option>
+        </select>
+      </td>
+      <td>
+        <button type="button" class="btn btn-danger btn-sm" onclick="eliminarFila(${contadorFilas})">
+          <i class="bi bi-trash"></i>
+        </button>
+      </td>
+    </tr>
+  `;
+  document.getElementById('tablaMateriales').insertAdjacentHTML('beforeend', fila);
+});
+
+function eliminarFila(id) {
+  document.querySelector(`tr[data-fila="${id}"]`).remove();
+}
+
+document.getElementById('formFormula').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const formData = new FormData(e.target);
+  const data = {
+    clase_id: formData.get('clase_id'),
+    nombre: formData.get('nombre'),
+    items: Array.from(document.querySelectorAll('#tablaMateriales tr')).map(row => ({
+      material: row.querySelector('[name="material[]"]').value,
+      cantidad: parseFloat(row.querySelector('[name="cantidad[]"]').value),
+      unidad: row.querySelector('[name="unidad[]"]').value
+    }))
+  };
+
+  try {
+    const response = await fetch('/api/guardar_formula', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (result.ok) {
+      alert('Fórmula guardada exitosamente');
+      cargarFormulas();
+      e.target.reset();
+      document.getElementById('tablaMateriales').innerHTML = '';
+      contadorFilas = 0;
+    } else {
+      alert(result.error);
+    }
+  } catch (error) {
+    alert('Error al guardar la fórmula');
+  }
+});
+
+async function cargarFormulas() {
+    const response = await fetch('/api/formulas');
+    const formulas = await response.json();
+    const html = formulas.map(f => `
+        <div class="card mb-2" data-formula-id="${f.id}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h6>${f.clase_nombre} - ${f.nombre}</h6>
+                    <button class="btn btn-sm btn-danger btn-delete-formula" data-id="${f.id}">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="small">
+                    ${f.items.map(i => `${i.material}: ${i.cantidad} ${i.unidad}`).join(' | ')}
+                </div>
+            </div>
+        </div>
+    `).join('');
+    document.getElementById('formulasExistentes').innerHTML = html;
+    
+    // Agregamos los event listeners para eliminar
+    document.querySelectorAll('.btn-delete-formula').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const id = btn.dataset.id;
+            if (!confirm('¿Está seguro que desea eliminar esta fórmula?')) return;
+            
+            try {
+                const response = await fetch(`/api/formulas/${id}`, {
+                    method: 'DELETE',
+                    headers: {'Content-Type': 'application/json'}
+                });
+                const result = await response.json();
+                
+                if (result.ok) {
+                    const card = btn.closest('.card');
+                    card.remove();
+                } else {
+                    alert('Error al eliminar: ' + result.error);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Error al eliminar la fórmula');
+            }
+        });
+    });
+}
+
+cargarFormulas();
+</script>
 {% endblock %}
