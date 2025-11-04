@@ -3,69 +3,95 @@
 
 {% block content %}
 <div class="card shadow p-4">
-  <h4 class="mb-4 fw-semibold text-center">Fórmulas de Dosificación</h4>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-semibold">Fórmulas de Dosificación</h4>
+    <button type="button" id="btnNuevaFormula" class="btn btn-warning text-dark fw-semibold">
+      <i class="bi bi-plus-circle me-1"></i> Nueva Fórmula
+    </button>
+  </div>
 
-  <form id="formFormula">
+  <form id="formFormula" class="border rounded p-3 bg-light" style="display:none;">
     <div class="row mb-3">
       <div class="col-md-6">
-        <label for="claseHormigon" class="form-label">Clase de Hormigón</label>
+        <label for="claseHormigon" class="form-label fw-semibold">Clase de Hormigón</label>
         <select id="claseHormigon" name="clase_id" class="form-select" required>
           <option value="">Seleccione una clase...</option>
           {% for clase in clases %}
-          <option value="{{ clase.id }}">{{ clase.nombre }} - {{ clase.descripcion }}</option>
+          <option value="{{ clase.id }}">{{ clase.nombre }} — {{ clase.descripcion }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="col-md-6">
-        <label for="nombreFormula" class="form-label">Nombre de la Fórmula</label>
+        <label for="nombreFormula" class="form-label fw-semibold">Nombre de la Fórmula</label>
         <input type="text" id="nombreFormula" name="nombre" class="form-control" required>
       </div>
     </div>
 
     <div class="table-responsive">
       <table class="table table-bordered align-middle">
-        <thead class="table-light">
+        <thead class="table-light text-center">
           <tr>
             <th style="width:60px;">#</th>
             <th>Material</th>
-            <th style="width:160px;">Cantidad</th>
-            <th style="width:160px;">Unidad</th>
+            <th style="width:150px;">Cantidad</th>
+            <th style="width:150px;">Unidad</th>
             <th style="width:100px;">Acción</th>
           </tr>
         </thead>
-        <tbody id="tablaMateriales">
-        </tbody>
+        <tbody id="tablaMateriales"></tbody>
       </table>
     </div>
 
     <div class="text-center mt-3">
       <button type="button" id="agregarMaterial" class="btn btn-dark">
-        <i class="bi bi-plus-circle"></i> Agregar Material
+        <i class="bi bi-plus-circle me-1"></i> Agregar Material
       </button>
     </div>
 
     <div class="text-end mt-4">
-      <button type="submit" class="btn btn-dark">Guardar Fórmula</button>
-      <button type="reset" class="btn btn-secondary ms-2">Limpiar</button>
+      <button type="submit" class="btn btn-warning text-dark fw-semibold">Guardar Fórmula</button>
+      <button type="button" id="cancelarFormula" class="btn btn-secondary ms-2">Cancelar</button>
     </div>
   </form>
 
   <hr class="my-4">
-  
-  <h5>Fórmulas Existentes</h5>
-  <div id="formulasExistentes"></div>
+
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-semibold mb-0">Fórmulas Existentes</h5>
+    <small class="text-muted">Listado de todas las fórmulas registradas</small>
+  </div>
+
+  <div id="formulasExistentes" class="row g-3"></div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
 <script>
 let contadorFilas = 0;
+
+document.getElementById('btnNuevaFormula').addEventListener('click', () => {
+  const form = document.getElementById('formFormula');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  if (form.style.display === 'block') {
+    form.scrollIntoView({ behavior: 'smooth' });
+  }
+});
+
+document.getElementById('cancelarFormula').addEventListener('click', () => {
+  document.getElementById('formFormula').reset();
+  document.getElementById('tablaMateriales').innerHTML = '';
+  contadorFilas = 0;
+  document.getElementById('formFormula').style.display = 'none';
+});
 
 document.getElementById('agregarMaterial').addEventListener('click', () => {
   contadorFilas++;
   const fila = `
     <tr data-fila="${contadorFilas}">
-      <td>${contadorFilas}</td>
+      <td class="text-center fw-semibold">${contadorFilas}</td>
       <td><input type="text" class="form-control" name="material[]" required></td>
-      <td><input type="number" step="0.01" class="form-control" name="cantidad[]" required></td>
+      <td><input type="number" step="0.01" class="form-control text-end" name="cantidad[]" required></td>
       <td>
         <select class="form-select" name="unidad[]" required>
           <option value="kg">kg</option>
@@ -73,18 +99,18 @@ document.getElementById('agregarMaterial').addEventListener('click', () => {
           <option value="m3">m³</option>
         </select>
       </td>
-      <td>
-        <button type="button" class="btn btn-danger btn-sm" onclick="eliminarFila(${contadorFilas})">
+      <td class="text-center">
+        <button type="button" class="btn btn-sm btn-danger" onclick="eliminarFila(${contadorFilas})">
           <i class="bi bi-trash"></i>
         </button>
       </td>
-    </tr>
-  `;
+    </tr>`;
   document.getElementById('tablaMateriales').insertAdjacentHTML('beforeend', fila);
 });
 
 function eliminarFila(id) {
-  document.querySelector(`tr[data-fila="${id}"]`).remove();
+  const fila = document.querySelector(`tr[data-fila="${id}"]`);
+  if (fila) fila.remove();
 }
 
 document.getElementById('formFormula').addEventListener('submit', async (e) => {
@@ -100,6 +126,11 @@ document.getElementById('formFormula').addEventListener('submit', async (e) => {
     }))
   };
 
+  if (data.items.length === 0) {
+    alert('Debe agregar al menos un material.');
+    return;
+  }
+
   try {
     const response = await fetch('/api/guardar_formula', {
       method: 'POST',
@@ -108,64 +139,61 @@ document.getElementById('formFormula').addEventListener('submit', async (e) => {
     });
     const result = await response.json();
     if (result.ok) {
-      alert('Fórmula guardada exitosamente');
+      alert('✅ Fórmula guardada exitosamente');
       cargarFormulas();
       e.target.reset();
       document.getElementById('tablaMateriales').innerHTML = '';
       contadorFilas = 0;
+      document.getElementById('formFormula').style.display = 'none';
     } else {
-      alert(result.error);
+      alert('Error: ' + result.error);
     }
   } catch (error) {
+    console.error(error);
     alert('Error al guardar la fórmula');
   }
 });
 
 async function cargarFormulas() {
+  try {
     const response = await fetch('/api/formulas');
     const formulas = await response.json();
+
     const html = formulas.map(f => `
-        <div class="card mb-2" data-formula-id="${f.id}">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start">
-                    <h6>${f.clase_nombre} - ${f.nombre}</h6>
-                    <button class="btn btn-sm btn-danger btn-delete-formula" data-id="${f.id}">
-                        <i class="bi bi-trash"></i>
-                    </button>
-                </div>
-                <div class="small">
-                    ${f.items.map(i => `${i.material}: ${i.cantidad} ${i.unidad}`).join(' | ')}
-                </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-2">
+              <h6 class="fw-semibold mb-0">${f.clase_nombre} — ${f.nombre}</h6>
+              <button class="btn btn-sm btn-danger btn-delete-formula" data-id="${f.id}" title="Eliminar">
+                <i class="bi bi-trash"></i>
+              </button>
             </div>
+            <div class="small text-muted">
+              ${f.items.map(i => `<div>${i.material}: <b>${i.cantidad}</b> ${i.unidad}</div>`).join('')}
+            </div>
+          </div>
         </div>
+      </div>
     `).join('');
-    document.getElementById('formulasExistentes').innerHTML = html;
-    
-    // Agregamos los event listeners para eliminar
+
+    document.getElementById('formulasExistentes').innerHTML = html || '<p class="text-muted">No hay fórmulas registradas.</p>';
+
     document.querySelectorAll('.btn-delete-formula').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = btn.dataset.id;
-            if (!confirm('¿Está seguro que desea eliminar esta fórmula?')) return;
-            
-            try {
-                const response = await fetch(`/api/formulas/${id}`, {
-                    method: 'DELETE',
-                    headers: {'Content-Type': 'application/json'}
-                });
-                const result = await response.json();
-                
-                if (result.ok) {
-                    const card = btn.closest('.card');
-                    card.remove();
-                } else {
-                    alert('Error al eliminar: ' + result.error);
-                }
-            } catch (error) {
-                console.error(error);
-                alert('Error al eliminar la fórmula');
-            }
-        });
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        if (!confirm('¿Eliminar esta fórmula?')) return;
+        const resp = await fetch(`/api/formulas/${id}`, { method: 'DELETE' });
+        const data = await resp.json();
+        if (data.ok) cargarFormulas();
+        else alert('Error: ' + data.error);
+      });
     });
+
+  } catch (error) {
+    console.error(error);
+    document.getElementById('formulasExistentes').innerHTML = '<p class="text-danger">Error al cargar fórmulas.</p>';
+  }
 }
 
 cargarFormulas();

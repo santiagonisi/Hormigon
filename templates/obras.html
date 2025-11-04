@@ -6,7 +6,7 @@
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h4 class="mb-0 fw-semibold">Gestión de Obras</h4>
     <button id="btnAgregarObra" class="btn btn-warning text-dark fw-semibold">
-      <i class="bi bi-plus-circle me-1"></i> Agregar Obra
+      <i class="bi bi-plus-circle me-1"></i> Nueva Obra
     </button>
   </div>
 
@@ -14,9 +14,9 @@
     <table class="table table-bordered align-middle">
       <thead class="table-light text-center">
         <tr>
-          <th>ID</th>
+          <th style="width:60px;">ID</th>
           <th>Nombre</th>
-          <th>Fecha de Inicio</th>
+          <th style="width:150px;">Fecha de Inicio</th>
           <th>Clases de Hormigón</th>
           <th style="width:150px;">Acciones</th>
         </tr>
@@ -24,19 +24,23 @@
       <tbody id="tablaObras">
         {% for o in obras %}
         <tr data-id="{{ o.id }}">
-          <td class="text-center">{{ o.id }}</td>
+          <td class="text-center fw-semibold">{{ o.id }}</td>
           <td>{{ o.nombre }}</td>
-          <td class="text-center">{{ o.fecha.strftime('%d/%m/%Y') if o.fecha else '' }}</td>
-          <td class="small">
-            {% for clase in o.clases %}
-            <span class="badge bg-secondary me-1">{{ clase.nombre }}</span>
-            {% endfor %}
+          <td class="text-center">{{ o.fecha.strftime('%d/%m/%Y') if o.fecha else '-' }}</td>
+          <td>
+            {% if o.clases %}
+              {% for clase in o.clases %}
+              <span class="badge bg-secondary me-1">{{ clase.nombre }}</span>
+              {% endfor %}
+            {% else %}
+              <span class="text-muted small">Sin clases</span>
+            {% endif %}
           </td>
           <td class="text-center">
-            <button class="btn btn-sm btn-dark btn-edit" data-id="{{ o.id }}">
+            <button class="btn btn-sm btn-dark btn-edit me-1" data-id="{{ o.id }}">
               <i class="bi bi-pencil-square"></i>
             </button>
-            <button class="btn btn-sm btn-danger btn-delete ms-1" data-id="{{ o.id }}">
+            <button class="btn btn-sm btn-danger btn-delete" data-id="{{ o.id }}">
               <i class="bi bi-trash"></i>
             </button>
           </td>
@@ -56,24 +60,28 @@
       </div>
       <div class="modal-body">
         <input type="hidden" id="obra_id" name="id">
+
         <div class="mb-3">
           <label class="form-label">Nombre de la Obra</label>
           <input type="text" id="obra_nombre" name="nombre" class="form-control" required>
         </div>
+
         <div class="mb-3">
           <label class="form-label">Fecha de Inicio</label>
           <input type="date" id="obra_fecha" name="fecha" class="form-control">
         </div>
+
         <div class="mb-3">
           <label class="form-label">Clases de Hormigón</label>
           <select id="obra_clases" name="clases" class="form-select" multiple size="6">
             {% for clase in clases %}
-            <option value="{{ clase.id }}">{{ clase.nombre }} - {{ clase.descripcion }}</option>
+            <option value="{{ clase.id }}">{{ clase.nombre }} — {{ clase.descripcion }}</option>
             {% endfor %}
           </select>
-          <div class="form-text">Mantén presionado Ctrl para seleccionar múltiples clases</div>
+          <div class="form-text text-muted">Ctrl + click para seleccionar múltiples clases</div>
         </div>
       </div>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="submit" class="btn btn-warning text-dark fw-semibold">Guardar</button>
@@ -89,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const obraModal = new bootstrap.Modal(document.getElementById('obraModal'));
   const obraForm = document.getElementById('obraForm');
   const btnAgregar = document.getElementById('btnAgregarObra');
-  const tablaObras = document.getElementById('tablaObras');
 
   btnAgregar.addEventListener('click', () => {
     document.getElementById('obraModalLabel').textContent = 'Nueva Obra';
@@ -111,59 +118,51 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('obra_nombre').value = o.nombre;
           document.getElementById('obra_fecha').value = o.fecha ? o.fecha.split('T')[0] : '';
           
-          // Seleccionar las clases de la obra
           const selectClases = document.getElementById('obra_clases');
           Array.from(selectClases.options).forEach(opt => {
             opt.selected = o.clases.includes(parseInt(opt.value));
           });
-          
+
           obraModal.show();
         })
-        .catch(err => console.error(err));
+        .catch(err => {
+          console.error(err);
+          alert('Error al cargar la obra');
+        });
     });
   });
 
   document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        if (!confirm('¿Está seguro que desea eliminar esta obra?')) return;
-        
-        fetch(`/api/obras/${id}`, { 
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'}
-        })
+      const id = btn.dataset.id;
+      if (!confirm('¿Eliminar esta obra permanentemente?')) return;
+
+      fetch(`/api/obras/${id}`, { method: 'DELETE' })
         .then(r => r.json())
         .then(resp => {
-            if (resp.ok) {
-                // Eliminamos la fila de la tabla
-                const row = btn.closest('tr');
-                row.remove();
-            } else {
-                alert('Error al eliminar: ' + resp.error);
-            }
+          if (resp.ok) window.location.reload();
+          else alert('Error al eliminar: ' + resp.error);
         })
-        .catch(err => {
-            console.error(err);
-            alert('Error al eliminar la obra');
-        });
+        .catch(err => console.error(err));
     });
   });
 
   obraForm.addEventListener('submit', ev => {
     ev.preventDefault();
+
     const clasesSelect = document.getElementById('obra_clases');
     const clasesSeleccionadas = Array.from(clasesSelect.selectedOptions).map(opt => parseInt(opt.value));
-    
+
     const payload = {
       id: document.getElementById('obra_id').value || null,
       nombre: document.getElementById('obra_nombre').value,
       fecha: document.getElementById('obra_fecha').value || null,
       clases: clasesSeleccionadas
     };
-    
+
     fetch('/api/obras', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {'Content-Type': 'application/json'},
       body: JSON.stringify(payload)
     })
     .then(r => r.json())
@@ -175,7 +174,10 @@ document.addEventListener('DOMContentLoaded', () => {
         alert('Error: ' + resp.error);
       }
     })
-    .catch(err => console.error(err));
+    .catch(err => {
+      console.error(err);
+      alert('Error al guardar la obra');
+    });
   });
 });
 </script>
