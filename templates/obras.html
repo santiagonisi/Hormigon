@@ -17,7 +17,7 @@
           <th style="width:60px;">ID</th>
           <th>Nombre</th>
           <th style="width:150px;">Fecha de Inicio</th>
-          <th>Clases de Hormigón</th>
+          <th>Fórmulas asociadas</th>
           <th style="width:150px;">Acciones</th>
         </tr>
       </thead>
@@ -28,12 +28,12 @@
           <td>{{ o.nombre }}</td>
           <td class="text-center">{{ o.fecha.strftime('%d/%m/%Y') if o.fecha else '-' }}</td>
           <td>
-            {% if o.clases %}
-              {% for clase in o.clases %}
-              <span class="badge bg-secondary me-1">{{ clase.nombre }}</span>
+            {% if o.formulas %}
+              {% for f in o.formulas %}
+              <span class="badge bg-secondary me-1">{{ f.clase.nombre }} — {{ f.nombre }}</span>
               {% endfor %}
             {% else %}
-              <span class="text-muted small">Sin clases</span>
+              <span class="text-muted small">Sin fórmulas</span>
             {% endif %}
           </td>
           <td class="text-center">
@@ -72,13 +72,13 @@
         </div>
 
         <div class="mb-3">
-          <label class="form-label">Clases de Hormigón</label>
-          <select id="obra_clases" name="clases" class="form-select" multiple size="6">
-            {% for clase in clases %}
-            <option value="{{ clase.id }}">{{ clase.nombre }} — {{ clase.descripcion }}</option>
+          <label class="form-label">Fórmulas</label>
+          <select id="obra_formulas" name="formulas" class="form-select" multiple size="6">
+            {% for formula in formulas %}
+            <option value="{{ formula.id }}">{{ formula.clase.nombre }} — {{ formula.nombre }}</option>
             {% endfor %}
           </select>
-          <div class="form-text text-muted">Ctrl + click para seleccionar múltiples clases</div>
+          <div class="form-text text-muted">Ctrl + click para seleccionar múltiples fórmulas</div>
         </div>
       </div>
 
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('obraModalLabel').textContent = 'Nueva Obra';
     obraForm.reset();
     document.getElementById('obra_id').value = '';
-    Array.from(document.getElementById('obra_clases').options)
+    Array.from(document.getElementById('obra_formulas').options)
       .forEach(opt => opt.selected = false);
     obraModal.show();
   });
@@ -118,9 +118,9 @@ document.addEventListener('DOMContentLoaded', () => {
           document.getElementById('obra_nombre').value = o.nombre;
           document.getElementById('obra_fecha').value = o.fecha ? o.fecha.split('T')[0] : '';
           
-          const selectClases = document.getElementById('obra_clases');
-          Array.from(selectClases.options).forEach(opt => {
-            opt.selected = o.clases.includes(parseInt(opt.value));
+          const selectFormulas = document.getElementById('obra_formulas');
+          Array.from(selectFormulas.options).forEach(opt => {
+            opt.selected = o.formulas.includes(parseInt(opt.value));
           });
 
           obraModal.show();
@@ -150,14 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
   obraForm.addEventListener('submit', ev => {
     ev.preventDefault();
 
-    const clasesSelect = document.getElementById('obra_clases');
-    const clasesSeleccionadas = Array.from(clasesSelect.selectedOptions).map(opt => parseInt(opt.value));
+    const formulasSelect = document.getElementById('obra_formulas');
+    const formulasSeleccionadas = Array.from(formulasSelect.selectedOptions).map(opt => parseInt(opt.value));
 
     const payload = {
       id: document.getElementById('obra_id').value || null,
       nombre: document.getElementById('obra_nombre').value,
       fecha: document.getElementById('obra_fecha').value || null,
-      clases: clasesSeleccionadas
+      formulas: formulasSeleccionadas
     };
 
     fetch('/api/obras', {

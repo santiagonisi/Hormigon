@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, a
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 import os
+from sqlalchemy import event
+import sqlite3
+from sqlalchemy.engine import Engine
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
@@ -11,6 +14,13 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
+@event.listens_for(Engine, "connect")
+def _set_sqlite_pragma(dbapi_connection, connection_record):
+    # Habilita foreign_keys sólo para conexiones sqlite3
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.close()
 
 class Obra(db.Model):
     __tablename__ = 'obras'
@@ -18,6 +28,8 @@ class Obra(db.Model):
     nombre = db.Column(db.String(200), nullable=False)
     fecha = db.Column(db.Date, nullable=True)
     clases = db.relationship('Clase', secondary='obra_clase', back_populates='obras')
+    # Relación con fórmulas (una obra puede tener varias fórmulas)
+    formulas = db.relationship('Formula', secondary='obra_formula', back_populates='obras')
 
 class Clase(db.Model):
     __tablename__ = 'clases'
@@ -25,7 +37,8 @@ class Clase(db.Model):
     nombre = db.Column(db.String(100), nullable=False) 
     descripcion = db.Column(db.String(250))
     obras = db.relationship('Obra', secondary='obra_clase', back_populates='clases')
-    formula = db.relationship('Formula', uselist=False, back_populates='clase')
+    # una clase puede tener varias fórmulas
+    formulas = db.relationship('Formula', back_populates='clase', cascade='all, delete-orphan')
 
 class ObraClase(db.Model):
     __tablename__ = 'obra_clase'
@@ -33,13 +46,21 @@ class ObraClase(db.Model):
     obra_id = db.Column(db.Integer, db.ForeignKey('obras.id'), nullable=False)
     clase_id = db.Column(db.Integer, db.ForeignKey('clases.id'), nullable=False)
 
+class ObraFormula(db.Model):
+    __tablename__ = 'obra_formula'
+    id = db.Column(db.Integer, primary_key=True)
+    obra_id = db.Column(db.Integer, db.ForeignKey('obras.id'), nullable=False)
+    formula_id = db.Column(db.Integer, db.ForeignKey('formulas.id'), nullable=False)
+
 class Formula(db.Model):
     __tablename__ = 'formulas'
     id = db.Column(db.Integer, primary_key=True)
     clase_id = db.Column(db.Integer, db.ForeignKey('clases.id'), nullable=False)
     nombre = db.Column(db.String(200), nullable=False)
-    clase = db.relationship('Clase', back_populates='formula')
+    clase = db.relationship('Clase', back_populates='formulas')
     items = db.relationship('FormulaItem', cascade='all, delete-orphan')
+    # Relación con obras (asociación many-to-many)
+    obras = db.relationship('Obra', secondary='obra_formula', back_populates='formulas')
 
 class FormulaItem(db.Model):
     __tablename__ = 'formula_items'
@@ -76,10 +97,11 @@ class Probeta(db.Model):
 
 
 def create_and_seed_db():
-    if not os.path.exists(DB_PATH):
-        db.create_all()
+    # crear tablas faltantes siempre (no borra datos existentes)
+    db.create_all()
 
-        
+    # aplicar seed SOLO si no hay clases (evita duplicar seed en BD existente)
+    if Clase.query.count() == 0:
         c1 = Clase(nombre='H8', descripcion='Hormigón H8')
         c2 = Clase(nombre='H13', descripcion='Hormigón H13')
         c3 = Clase(nombre='H15', descripcion='Hormigón H15')
@@ -90,8 +112,6 @@ def create_and_seed_db():
         c8 = Clase(nombre='H30', descripcion='Hormigón H30')
         db.session.add_all([c1, c2, c3, c4, c5, c6 , c7, c8])
         db.session.commit()
-       
-
         f = Formula(clase_id=c2.id, nombre='Dosificación H25 - Ejemplo')
         db.session.add(f); db.session.commit()
         fi1 = FormulaItem(formula_id=f.id, material='Cemento', cantidad=350, unidad='kg')
@@ -119,8 +139,11 @@ def parte_diario():
 @app.route('/obras')
 def obras_page():
     obras = Obra.query.order_by(Obra.id.desc()).all()
-    clases = Clase.query.order_by(Clase.nombre).all()
-    return render_template('obras.html', obras=obras, clases=clases)
+    # usar outerjoin para incluir fórmulas aunque falte la clase y ordenar
+    formulas = Formula.query.outerjoin(Clase).order_by(Clase.nombre, Formula.nombre).all()
+    # log simple en consola para debug
+    print(f"[DEBUG] obras_page: encontradas {len(formulas)} fórmulas")
+    return render_template('obras.html', obras=obras, formulas=formulas)
 
 @app.route('/formulas')
 def formulas_page():
@@ -133,9 +156,12 @@ def informes_page():
 
 @app.route('/api/get_clases/<int:obra_id>')
 def api_get_clases(obra_id):
+    # Obtener las clases asociadas a las fórmulas de la obra (evita duplicados)
     clases = (db.session.query(Clase.id, Clase.nombre)
-              .join(ObraClase, Clase.id == ObraClase.clase_id)
-              .filter(ObraClase.obra_id == obra_id)
+              .join(Formula, Clase.id == Formula.clase_id)
+              .join(ObraFormula, Formula.id == ObraFormula.formula_id)
+              .filter(ObraFormula.obra_id == obra_id)
+              .distinct()
               .order_by(Clase.nombre).all())
     result = [{'id': c.id, 'nombre': c.nombre} for c in clases]
     return jsonify(result)
@@ -233,7 +259,8 @@ def api_get_obra(obra_id):
         'id': obra.id,
         'nombre': obra.nombre,
         'fecha': obra.fecha.isoformat() if obra.fecha else None,
-        'clases': [c.id for c in obra.clases]
+        # devolver fórmulas asociadas para que el front pueda preseleccionarlas
+        'formulas': [f.id for f in obra.formulas]
     })
 
 @app.route('/api/obras', methods=['POST'])
@@ -251,9 +278,10 @@ def api_guardar_obra():
             )
             db.session.add(obra)
         
-        # Actualizar clases asociadas
-        clases = Clase.query.filter(Clase.id.in_(data['clases'])).all()
-        obra.clases = clases
+        # Actualizar fórmulas asociadas (vienen del formulario de obras)
+        formula_ids = data.get('formulas') or []
+        formulas = Formula.query.filter(Formula.id.in_(formula_ids)).all() if formula_ids else []
+        obra.formulas = formulas
         
         db.session.commit()
         return jsonify({'ok': True})
@@ -268,6 +296,8 @@ def api_eliminar_obra(obra_id):
         
         # Eliminamos primero los partes diarios asociados
         ParteDiario.query.filter_by(obra_id=obra_id).delete()
+        # eliminar asociaciones obra_formula
+        ObraFormula.query.filter_by(obra_id=obra_id).delete()
         
         # Eliminamos la obra
         db.session.delete(obra)
@@ -285,6 +315,8 @@ def api_eliminar_formula(formula_id):
         
         # Eliminamos primero los items de la fórmula
         FormulaItem.query.filter_by(formula_id=formula_id).delete()
+        # eliminar asociaciones obra_formula
+        ObraFormula.query.filter_by(formula_id=formula_id).delete()
         
         # Eliminamos la fórmula
         db.session.delete(formula)
