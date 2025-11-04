@@ -1,19 +1,23 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    const btnTop = document.getElementById('btnTop');
-  window.onscroll = function () {
-    if (!btnTop) return;
-    if (document.body.scrollTop > 100 || document.documentElement.scrollTop > 100) {
-      btnTop.style.display = 'block';
-    } else {
-      btnTop.style.display = 'none';
-    }
-  };
+  // botón "volver arriba" -> coincide con el id usado en base.html
+  const btnTop = document.getElementById('scrollTopButton');
+  if (btnTop) {
+    window.addEventListener('scroll', () => {
+      if (window.scrollY > 50) btnTop.classList.add('show');
+      else btnTop.classList.remove('show');
+    });
+    btnTop.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
 
+  // Selects comunes
   const selectObra = document.getElementById('selectObra');
   const selectClase = document.getElementById('selectClase');
 
-  if (selectObra) {
+  if (selectObra && selectClase) {
     selectObra.addEventListener('change', (e) => {
       const obraId = e.target.value;
       selectClase.innerHTML = '<option value="">Cargando...</option>';
@@ -43,28 +47,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const probetasSection = document.getElementById('probetasSection');
   const tablaProbetas = document.getElementById('tablaProbetas');
 
-  if (checkProbetas) {
+  if (checkProbetas && probetasSection) {
     checkProbetas.addEventListener('change', () => {
       if (checkProbetas.checked) {
         probetasSection.style.display = 'block';
         generarFilasProbetas();
       } else {
         probetasSection.style.display = 'none';
-        tablaProbetas.innerHTML = '';
+        if (tablaProbetas) tablaProbetas.innerHTML = '';
       }
     });
   }
 
-  function generarFilasProbetas() {
+  function generarFilasProbetas(datos = null) {
+    if (!tablaProbetas) return;
     tablaProbetas.innerHTML = '';
     for (let i = 1; i <= 3; i++) {
+      const probeta = datos ? datos[i - 1] : null;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td class="text-center">${i}</td>
-        <td><input type="date" class="form-control" name="fecha_ensayo_${i}" /></td>
-        <td><input type="number" class="form-control" name="edad_${i}" step="1" /></td>
-        <td><input type="number" class="form-control" name="lectura_${i}" step="0.01" /></td>
-        <td><input type="number" class="form-control" name="resistencia_${i}" step="0.01" readonly /></td>
+        <td><input type="date" class="form-control" name="fecha_ensayo_${i}" value="${probeta?.fecha_ensayo || ''}" /></td>
+        <td><input type="number" class="form-control" name="edad_${i}" step="1" value="${probeta?.edad || probeta?.edad_dias || ''}" /></td>
+        <td><input type="number" class="form-control" name="lectura_${i}" step="0.01" value="${probeta?.lectura || probeta?.lectura_prensa_kn || ''}" /></td>
+        <td><input type="number" class="form-control" name="resistencia_${i}" step="0.01" value="${probeta?.resistencia || probeta?.resistencia_mpa || ''}" /></td>
       `;
       tablaProbetas.appendChild(tr);
     }
@@ -75,22 +81,22 @@ document.addEventListener('DOMContentLoaded', () => {
     parteForm.addEventListener('submit', (ev) => {
       ev.preventDefault();
 
-      const fecha = document.getElementById('fecha').value;
-      const obra_id = document.getElementById('selectObra').value;
-      const clase_id = document.getElementById('selectClase').value;
-      const hora_despacho = document.getElementById('hora_despacho').value;
-      const cantidad_m3 = document.getElementById('cantidad_m3').value;
-      const asentamiento_cm = document.getElementById('asentamiento_cm').value;
-      const usa_probetas = document.getElementById('checkProbetas').checked;
+      const fecha = document.getElementById('fecha')?.value;
+      const obra_id = document.getElementById('selectObra')?.value;
+      const clase_id = document.getElementById('selectClase')?.value;
+      const hora_despacho = document.getElementById('hora_despacho')?.value;
+      const cantidad_m3 = document.getElementById('cantidad_m3')?.value;
+      const asentamiento_cm = document.getElementById('asentamiento_cm')?.value;
+      const usa_probetas = document.getElementById('checkProbetas')?.checked;
 
       const probetas = [];
-      if (usa_probetas) {
+      if (usa_probetas && tablaProbetas) {
         const rows = tablaProbetas.querySelectorAll('tr');
         rows.forEach((r, idx) => {
-          const fecha_ensayo = r.querySelector(`input[name="fecha_ensayo_${idx+1}"]`).value;
-          const edad = r.querySelector(`input[name="edad_${idx+1}"]`).value;
-          const lectura = r.querySelector(`input[name="lectura_${idx+1}"]`).value;
-          const resistencia = r.querySelector(`input[name="resistencia_${idx+1}"]`).value;
+          const fecha_ensayo = r.querySelector(`input[name="fecha_ensayo_${idx+1}"]`)?.value || null;
+          const edad = r.querySelector(`input[name="edad_${idx+1}"]`)?.value || null;
+          const lectura = r.querySelector(`input[name="lectura_${idx+1}"]`)?.value || null;
+          const resistencia = r.querySelector(`input[name="resistencia_${idx+1}"]`)?.value || null;
           probetas.push({
             fecha_ensayo: fecha_ensayo || null,
             edad: edad || null,
@@ -106,33 +112,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
       fetch('/api/guardar_parte', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-      .then(r => r.json())
-      .then(resp => {
-        if (resp.ok) {
-          alert('Parte guardado correctamente. ID: ' + resp.parte_id);
-          parteForm.reset();
-          tablaProbetas.innerHTML = '';
-          probetasSection.style.display = 'none';
-        } else {
-          alert('Error: ' + (resp.error || 'Error desconocido'));
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Error guardando parte. Revisá la consola.');
-      });
+        .then(r => r.json())
+        .then(resp => {
+          if (resp.ok) {
+            alert('Parte guardado correctamente. ID: ' + (resp.parte_id || ''));
+            parteForm.reset();
+            if (tablaProbetas) tablaProbetas.innerHTML = '';
+            if (probetaSection) probetasSection.style.display = 'none';
+            // recargar para ver cambios
+            window.location.reload();
+          } else {
+            alert('Error: ' + (resp.error || 'Error desconocido'));
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          alert('Error guardando parte. Revisá la consola.');
+        });
     });
   }
 
-
-  const agregarFilaBtn = document.getElementById('agregarFila');
+  // manejo de filas de fórmulas/materiales (si existe tablaMateriales / agregarMaterial)
+  const agregarMaterialBtn = document.getElementById('agregarMaterial') || document.getElementById('agregarFila');
   const tablaMateriales = document.getElementById('tablaMateriales');
-  if (agregarFilaBtn) {
+  if (agregarMaterialBtn && tablaMateriales) {
     let contador = 0;
-    agregarFilaBtn.addEventListener('click', () => {
+    agregarMaterialBtn.addEventListener('click', () => {
       contador++;
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -159,13 +167,8 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.closest('tr').remove();
       }
     });
-
-    const formFormula = document.getElementById('formFormula');
-    if (formFormula) {
-      formFormula.addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        alert('Aquí se podría guardar la fórmula en la base de datos (implementación pendiente).');
-      });
-    }
   }
+
+  // resto del JS específico de páginas (obras/formulas/parte) se puede mantener en los templates;
+  // este archivo cubre comportamiento común y evita errores si algún elemento no existe.
 });
