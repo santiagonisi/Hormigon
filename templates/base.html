@@ -30,7 +30,6 @@
 
 <body>
 
-    <!-- NAVBAR (idéntica a Logística) -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark iarsa-navbar">
         <div class="container-fluid">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('parte_diario') }}">
@@ -61,17 +60,14 @@
         </div>
     </nav>
 
-    <!-- CONTENIDO -->
     <div class="container my-4">
         {% block content %}{% endblock %}
     </div>
 
-    <!-- BOTÓN SCROLL -->
     <a href="#" id="scrollTopButton" class="btn btn-primary rounded-circle shadow" title="Volver arriba">
       <i class="bi bi-arrow-up"></i>
     </a>
 
-    <!-- JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
