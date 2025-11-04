@@ -97,7 +97,7 @@ td .btn {
       </div>
 
       <div class="col-12 text-end mt-2">
-        <button type="submit" class="btn btn-warning fw-semibold"><i class="bi bi-plus-circle me-1"></i>Agregar Parte</button>
+        <button type="submit" class="btn btn-warning text-dark fw-semibold"><i class="bi bi-plus-circle me-1"></i>Agregar Parte</button>
         <button type="reset" id="btnReset" class="btn btn-secondary ms-2"><i class="bi bi-eraser me-1"></i>Limpiar</button>
       </div>
     </div>
@@ -156,7 +156,7 @@ td .btn {
           <td class="text-center">
             <div class="actions-group">
               <div class="top-buttons">
-                <button class="btn btn-sm btn-dark btn-edit" data-id="{{ p.id }}" title="Editar">
+                <button class="btn btn-sm btn-success btn-edit" data-id="{{ p.id }}" title="Editar">
                   <i class="bi bi-pencil-square"></i>
                 </button>
                 <button class="btn btn-sm btn-danger btn-delete" data-id="{{ p.id }}" title="Eliminar">
@@ -165,7 +165,7 @@ td .btn {
               </div>
 
               {% if p.usa_probetas %}
-              <button class="btn btn-sm btn-info btn-view-probetas view-button" data-id="{{ p.id }}" title="Ver probetas">
+              <button class="btn btn-sm btn-warning text-dark fw-semibold btn-view-probetas view-button" data-id="{{ p.id }}" title="Ver probetas">
                 <i class="bi bi-eye"></i>
               </button>
               {% endif %}
