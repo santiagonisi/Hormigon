@@ -16,7 +16,6 @@ db = SQLAlchemy(app)
 
 @event.listens_for(Engine, "connect")
 def _set_sqlite_pragma(dbapi_connection, connection_record):
-    # Habilita foreign_keys sólo para conexiones sqlite3
     if isinstance(dbapi_connection, sqlite3.Connection):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
@@ -97,10 +96,8 @@ class Probeta(db.Model):
 
 
 def create_and_seed_db():
-    # crear tablas faltantes siempre (no borra datos existentes)
     db.create_all()
 
-    # aplicar seed SOLO si no hay clases (evita duplicar seed en BD existente)
     if Clase.query.count() == 0:
         c1 = Clase(nombre='H8', descripcion='Hormigón H8')
         c2 = Clase(nombre='H13', descripcion='Hormigón H13')
@@ -139,9 +136,7 @@ def parte_diario():
 @app.route('/obras')
 def obras_page():
     obras = Obra.query.order_by(Obra.id.desc()).all()
-    # usar outerjoin para incluir fórmulas aunque falte la clase y ordenar
     formulas = Formula.query.outerjoin(Clase).order_by(Clase.nombre, Formula.nombre).all()
-    # log simple en consola para debug
     print(f"[DEBUG] obras_page: encontradas {len(formulas)} fórmulas")
     return render_template('obras.html', obras=obras, formulas=formulas)
 
@@ -156,7 +151,6 @@ def informes_page():
 
 @app.route('/api/get_clases/<int:obra_id>')
 def api_get_clases(obra_id):
-    # Obtener las clases asociadas a las fórmulas de la obra (evita duplicados)
     clases = (db.session.query(Clase.id, Clase.nombre)
               .join(Formula, Clase.id == Formula.clase_id)
               .join(ObraFormula, Formula.id == ObraFormula.formula_id)
@@ -201,6 +195,25 @@ def api_guardar_parte():
         db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 400
 
+@app.route('/api/parte_diario/<int:parte_id>')
+def api_get_parte(parte_id):
+    parte = ParteDiario.query.get_or_404(parte_id)
+    return jsonify({
+        'id': parte.id,
+        'fecha': parte.fecha.strftime('%Y-%m-%d'),
+        'obra_id': parte.obra_id,
+        'clase_id': parte.clase_id,
+        'hora_despacho': parte.hora_despacho.strftime('%H:%M') if parte.hora_despacho else None,
+        'cantidad_m3': parte.cantidad_m3,
+        'asentamiento_cm': parte.asentamiento_cm,
+        'usa_probetas': parte.usa_probetas,
+        'probetas': [{
+            'fecha_ensayo': p.fecha_ensayo.strftime('%Y-%m-%d') if p.fecha_ensayo else None,
+            'edad_dias': p.edad_dias,
+            'lectura_prensa_kn': p.lectura_prensa_kn,
+            'resistencia_mpa': p.resistencia_mpa
+        } for p in parte.probetas]
+    })
 
 @app.route('/api/eliminar_parte/<int:parte_id>', methods=['DELETE'])
 def api_eliminar_parte(parte_id):
@@ -259,7 +272,6 @@ def api_get_obra(obra_id):
         'id': obra.id,
         'nombre': obra.nombre,
         'fecha': obra.fecha.isoformat() if obra.fecha else None,
-        # devolver fórmulas asociadas para que el front pueda preseleccionarlas
         'formulas': [f.id for f in obra.formulas]
     })
 
@@ -278,7 +290,6 @@ def api_guardar_obra():
             )
             db.session.add(obra)
         
-        # Actualizar fórmulas asociadas (vienen del formulario de obras)
         formula_ids = data.get('formulas') or []
         formulas = Formula.query.filter(Formula.id.in_(formula_ids)).all() if formula_ids else []
         obra.formulas = formulas
@@ -294,12 +305,9 @@ def api_eliminar_obra(obra_id):
     try:
         obra = Obra.query.get_or_404(obra_id)
         
-        # Eliminamos primero los partes diarios asociados
         ParteDiario.query.filter_by(obra_id=obra_id).delete()
-        # eliminar asociaciones obra_formula
         ObraFormula.query.filter_by(obra_id=obra_id).delete()
         
-        # Eliminamos la obra
         db.session.delete(obra)
         db.session.commit()
         
@@ -313,12 +321,9 @@ def api_eliminar_formula(formula_id):
     try:
         formula = Formula.query.get_or_404(formula_id)
         
-        # Eliminamos primero los items de la fórmula
         FormulaItem.query.filter_by(formula_id=formula_id).delete()
-        # eliminar asociaciones obra_formula
         ObraFormula.query.filter_by(formula_id=formula_id).delete()
         
-        # Eliminamos la fórmula
         db.session.delete(formula)
         db.session.commit()
         

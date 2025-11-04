@@ -7,6 +7,49 @@
     <h4 class="fw-semibold mb-0"><i class="bi bi-journal-text me-2 text-warning"></i>Parte Diario de Hormigón</h4>
   </div>
 
+
+<style>
+:root{
+  --action-btn-width: 38px;
+  --action-gap: 0.5rem;
+}
+
+
+td .btn {
+  padding: 0.25rem 0.45rem;
+  line-height: 1;
+}
+
+
+.actions-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--action-gap);
+}
+
+
+.top-buttons {
+  display: flex;
+  gap: var(--action-gap);
+  justify-content: center;
+}
+
+
+.top-buttons .btn {
+  width: var(--action-btn-width);
+}
+
+
+.view-button {
+  width: calc((2 * var(--action-btn-width)) + var(--action-gap));
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+</style>
+
+
   <form id="parteForm" class="mb-4">
     <div class="row g-3">
       <div class="col-sm-3 col-md-2">
@@ -110,9 +153,23 @@
           <td>{{ '%.2f'|format(p.cantidad_m3 or 0) }}</td>
           <td>{{ p.asentamiento_cm or '' }}</td>
           <td>{{ 'Sí' if p.usa_probetas else 'No' }}</td>
-          <td>
-            <button class="btn btn-sm btn-dark btn-edit me-1" data-id="{{ p.id }}"><i class="bi bi-pencil-square"></i></button>
-            <button class="btn btn-sm btn-danger btn-delete" data-id="{{ p.id }}"><i class="bi bi-trash"></i></button>
+          <td class="text-center">
+            <div class="actions-group">
+              <div class="top-buttons">
+                <button class="btn btn-sm btn-dark btn-edit" data-id="{{ p.id }}" title="Editar">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn btn-sm btn-danger btn-delete" data-id="{{ p.id }}" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+
+              {% if p.usa_probetas %}
+              <button class="btn btn-sm btn-info btn-view-probetas view-button" data-id="{{ p.id }}" title="Ver probetas">
+                <i class="bi bi-eye"></i>
+              </button>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}
@@ -136,30 +193,150 @@
     </ul>
   </nav>
 </div>
+
+
+<div class="modal fade" id="probetasModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Probetas del Parte</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Fecha Ensayo</th>
+                <th>Edad (días)</th>
+                <th>Lectura Prensa (kN)</th>
+                <th>Resistencia (MPa)</th>
+              </tr>
+            </thead>
+            <tbody id="modalTablaProbetas"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-
+  let editandoId = null;
+  const form = document.getElementById('parteForm');
   const selectObra = document.getElementById('selectObra');
   const selectClase = document.getElementById('selectClase');
   const chkProbetas = document.getElementById('checkProbetas');
   const probetasSection = document.getElementById('probetasSection');
   const tablaProbetas = document.getElementById('tablaProbetas');
 
-  function generarFilasProbetas() {
+  
+  const probetasModal = new bootstrap.Modal(document.getElementById('probetasModal'));
+  const modalTablaProbetas = document.getElementById('modalTablaProbetas');
+
+  function generarFilasProbetas(datos = null) {
     tablaProbetas.innerHTML = '';
     for (let i = 1; i <= 3; i++) {
+      const probeta = datos ? datos[i-1] : null;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${i}</td>
-        <td><input type="date" class="form-control" name="fecha_ensayo_${i}"></td>
-        <td><input type="number" class="form-control" name="edad_${i}" step="1"></td>
-        <td><input type="number" class="form-control" name="lectura_${i}" step="0.01"></td>
-        <td><input type="number" class="form-control" name="resistencia_${i}" step="0.01"></td>
+        <td><input type="date" class="form-control" name="fecha_ensayo_${i}" 
+            value="${probeta?.fecha_ensayo || ''}"></td>
+        <td><input type="number" class="form-control" name="edad_${i}" step="1" 
+            value="${probeta?.edad_dias || ''}"></td>
+        <td><input type="number" class="form-control" name="lectura_${i}" step="0.01" 
+            value="${probeta?.lectura_prensa_kn || ''}"></td>
+        <td><input type="number" class="form-control" name="resistencia_${i}" step="0.01" 
+            value="${probeta?.resistencia_mpa || ''}"></td>
       `;
       tablaProbetas.appendChild(tr);
+    }
+  }
+
+  function cargarClases(obraId, claseIdSeleccionada = null) {
+    selectClase.innerHTML = '<option>Cargando...</option>';
+    if (!obraId) {
+      selectClase.innerHTML = '<option value="">Seleccione obra primero</option>';
+      return Promise.resolve();
+    }
+    return fetch(`/api/get_clases/${obraId}`)
+      .then(r => r.json())
+      .then(data => {
+        selectClase.innerHTML = '<option value="">Seleccione clase</option>';
+        data.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = c.nombre;
+          if (claseIdSeleccionada && c.id == claseIdSeleccionada) {
+            opt.selected = true;
+          }
+          selectClase.appendChild(opt);
+        });
+      });
+  }
+
+  async function cargarParteDiario(id) {
+    try {
+      const response = await fetch(`/api/parte_diario/${id}`);
+      const parte = await response.json();
+      
+      editandoId = parte.id;
+      document.getElementById('fecha').value = parte.fecha;
+      selectObra.value = parte.obra_id;
+      await cargarClases(parte.obra_id, parte.clase_id);
+      
+      if (parte.hora_despacho) {
+        document.getElementById('hora_despacho').value = parte.hora_despacho;
+      }
+      if (parte.cantidad_m3) {
+        document.getElementById('cantidad_m3').value = parte.cantidad_m3;
+      }
+      if (parte.asentamiento_cm) {
+        document.getElementById('asentamiento_cm').value = parte.asentamiento_cm;
+      }
+      
+      chkProbetas.checked = parte.usa_probetas;
+      if (parte.usa_probetas) {
+        probetasSection.style.display = 'block';
+        generarFilasProbetas(parte.probetas);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al cargar el parte diario');
+    }
+  }
+
+  async function mostrarProbetas(id) {
+    try {
+      const response = await fetch(`/api/parte_diario/${id}`);
+      const parte = await response.json();
+      
+      modalTablaProbetas.innerHTML = '';
+      
+      parte.probetas.forEach((p, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${p.fecha_ensayo || '-'}</td>
+          <td>${p.edad_dias || '-'}</td>
+          <td>${p.lectura_prensa_kn?.toFixed(2) || '-'}</td>
+          <td>${p.resistencia_mpa?.toFixed(2) || '-'}</td>
+        `;
+        modalTablaProbetas.appendChild(tr);
+      });
+      
+      probetasModal.show();
+    } catch (err) {
+      console.error(err);
+      alert('Error al cargar las probetas');
     }
   }
 
@@ -174,33 +351,14 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   selectObra.addEventListener('change', (e) => {
-    const obraId = e.target.value;
-    selectClase.innerHTML = '<option>Cargando...</option>';
-    if (!obraId) {
-      selectClase.innerHTML = '<option value="">Seleccione obra primero</option>';
-      return;
-    }
-    fetch(`/api/get_clases/${obraId}`)
-      .then(r => r.json())
-      .then(data => {
-        selectClase.innerHTML = '<option value="">Seleccione clase</option>';
-        data.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.id;
-          opt.textContent = c.nombre;
-          selectClase.appendChild(opt);
-        });
-      })
-      .catch(err => {
-        console.error(err);
-        selectClase.innerHTML = '<option value="">Error al cargar</option>';
-      });
+    cargarClases(e.target.value);
   });
 
-  document.getElementById('parteForm').addEventListener('submit', (ev) => {
+  form.addEventListener('submit', (ev) => {
     ev.preventDefault();
 
     const payload = {
+      id: editandoId,
       fecha: document.getElementById('fecha').value,
       obra_id: selectObra.value,
       clase_id: selectClase.value,
@@ -239,6 +397,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
+  document.getElementById('btnReset').addEventListener('click', () => {
+    editandoId = null;
+    chkProbetas.checked = false;
+    probetasSection.style.display = 'none';
+    tablaProbetas.innerHTML = '';
+  });
+
   document.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => {
       const id = btn.dataset.id;
@@ -254,10 +419,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.querySelectorAll('.btn-edit').forEach(btn => {
     btn.addEventListener('click', () => {
-      alert('Función editar (implementación pendiente) — id: ' + btn.dataset.id);
+      cargarParteDiario(btn.dataset.id);
+    });
+  });
+
+  document.querySelectorAll('.btn-view-probetas').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mostrarProbetas(btn.dataset.id);
     });
   });
 
 });
 </script>
 {% endblock %}
+
