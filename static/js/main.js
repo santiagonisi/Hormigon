@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-  // botón "volver arriba" -> coincide con el id usado en base.html
   const btnTop = document.getElementById('scrollTopButton');
   if (btnTop) {
     window.addEventListener('scroll', () => {
@@ -13,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Selects comunes
   const selectObra = document.getElementById('selectObra');
   const selectClase = document.getElementById('selectClase');
 
@@ -122,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
             parteForm.reset();
             if (tablaProbetas) tablaProbetas.innerHTML = '';
             if (probetaSection) probetasSection.style.display = 'none';
-            // recargar para ver cambios
             window.location.reload();
           } else {
             alert('Error: ' + (resp.error || 'Error desconocido'));
@@ -135,7 +132,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // manejo de filas de fórmulas/materiales (si existe tablaMateriales / agregarMaterial)
   const agregarMaterialBtn = document.getElementById('agregarMaterial') || document.getElementById('agregarFila');
   const tablaMateriales = document.getElementById('tablaMateriales');
   if (agregarMaterialBtn && tablaMateriales) {
@@ -169,6 +165,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // resto del JS específico de páginas (obras/formulas/parte) se puede mantener en los templates;
-  // este archivo cubre comportamiento común y evita errores si algún elemento no existe.
 });
