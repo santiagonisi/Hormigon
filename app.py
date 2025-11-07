@@ -109,14 +109,7 @@ def create_and_seed_db():
         c8 = Clase(nombre='H30', descripcion='Hormigón H30')
         db.session.add_all([c1, c2, c3, c4, c5, c6 , c7, c8])
         db.session.commit()
-        f = Formula(clase_id=c2.id, nombre='Dosificación H25 - Ejemplo')
-        db.session.add(f); db.session.commit()
-        fi1 = FormulaItem(formula_id=f.id, material='Cemento', cantidad=350, unidad='kg')
-        fi2 = FormulaItem(formula_id=f.id, material='Agua', cantidad=170, unidad='lts')
-        fi3 = FormulaItem(formula_id=f.id, material='Arena', cantidad=800, unidad='kg')
-        db.session.add_all([fi1, fi2, fi3])
-        db.session.commit()
-        print('DB creada y seed aplicada.')
+
 
 @app.route('/')
 def index():
