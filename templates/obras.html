@@ -49,8 +49,25 @@
       </tbody>
     </table>
   </div>
-</div>
 
+<nav aria-label="Paginación obras">
+  <ul class="pagination justify-content-center mt-3">
+    <li class="page-item {% if not obras_paginate.has_prev %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('obras', page=obras_paginate.prev_num) if obras_paginate.has_prev else '#' }}"><<</a>
+    </li>
+
+    {% for pnum in range(1, total_pages + 1) %}
+    <li class="page-item {% if pnum == page %}active{% endif %}">
+      <a class="page-link" href="{{ url_for('obras', page=pnum) }}">{{ pnum }}</a>
+    </li>
+    {% endfor %}
+
+    <li class="page-item {% if not obras_paginate.has_next %}disabled{% endif %}">
+      <a class="page-link" href="{{ url_for('obras', page=obras_paginate.next_num) if obras_paginate.has_next else '#' }}">>></a>
+    </li>
+  </ul>
+</nav>
+</div>
 <div class="modal fade" id="obraModal" tabindex="-1" aria-labelledby="obraModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form id="obraForm" class="modal-content">

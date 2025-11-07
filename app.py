@@ -127,6 +127,40 @@ def parte_diario():
     return render_template('parte_diario.html', obras=obras, partes=partes, page=page, total_pages=total_pages)
 
 @app.route('/obras')
+def obras():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    obras_paginate = Obra.query.paginate(page=page, per_page=per_page)
+    total_pages = obras_paginate.pages
+
+    return render_template(
+        'obras.html',
+        obras=obras_paginate.items,
+        page=page,
+        total_pages=total_pages,
+        obras_paginate=obras_paginate
+    )
+
+
+@app.route('/formulas')
+def formulas():
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+
+    formulas_paginate = Formula.query.paginate(page=page, per_page=per_page)
+    total_pages = formulas_paginate.pages
+
+    return render_template(
+        'formulas.html',
+        formulas=formulas_paginate.items,
+        page=page,
+        total_pages=total_pages,
+        formulas_paginate=formulas_paginate
+    )
+
+
+@app.route('/obras')
 def obras_page():
     obras = Obra.query.order_by(Obra.id.desc()).all()
     formulas = Formula.query.outerjoin(Clase).order_by(Clase.nombre, Formula.nombre).all()
