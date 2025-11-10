@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+  // === BOTÓN "VOLVER ARRIBA" ===
   const btnTop = document.getElementById('scrollTopButton');
   if (btnTop) {
     window.addEventListener('scroll', () => {
@@ -12,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // === CARGAR CLASES SEGÚN OBRA ===
   const selectObra = document.getElementById('selectObra');
   const selectClase = document.getElementById('selectClase');
 
@@ -19,10 +21,12 @@ document.addEventListener('DOMContentLoaded', () => {
     selectObra.addEventListener('change', (e) => {
       const obraId = e.target.value;
       selectClase.innerHTML = '<option value="">Cargando...</option>';
+
       if (!obraId) {
         selectClase.innerHTML = '<option value="">Seleccione obra primero</option>';
         return;
       }
+
       fetch(`/api/get_clases/${obraId}`)
         .then(res => res.json())
         .then(data => {
@@ -41,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // === SECCIÓN DE PROBETAS ===
   const checkProbetas = document.getElementById('checkProbetas');
   const probetasSection = document.getElementById('probetasSection');
   const tablaProbetas = document.getElementById('tablaProbetas');
@@ -72,64 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
       tablaProbetas.appendChild(tr);
     }
-  }
-
-  const parteForm = document.getElementById('parteForm');
-  if (parteForm) {
-    parteForm.addEventListener('submit', (ev) => {
-      ev.preventDefault();
-
-      const fecha = document.getElementById('fecha')?.value;
-      const obra_id = document.getElementById('selectObra')?.value;
-      const clase_id = document.getElementById('selectClase')?.value;
-      const hora_despacho = document.getElementById('hora_despacho')?.value;
-      const cantidad_m3 = document.getElementById('cantidad_m3')?.value;
-      const asentamiento_cm = document.getElementById('asentamiento_cm')?.value;
-      const usa_probetas = document.getElementById('checkProbetas')?.checked;
-
-      const probetas = [];
-      if (usa_probetas && tablaProbetas) {
-        const rows = tablaProbetas.querySelectorAll('tr');
-        rows.forEach((r, idx) => {
-          const fecha_ensayo = r.querySelector(`input[name="fecha_ensayo_${idx+1}"]`)?.value || null;
-          const edad = r.querySelector(`input[name="edad_${idx+1}"]`)?.value || null;
-          const lectura = r.querySelector(`input[name="lectura_${idx+1}"]`)?.value || null;
-          const resistencia = r.querySelector(`input[name="resistencia_${idx+1}"]`)?.value || null;
-          probetas.push({
-            fecha_ensayo: fecha_ensayo || null,
-            edad: edad || null,
-            lectura: lectura || null,
-            resistencia: resistencia || null
-          });
-        });
-      }
-
-      const payload = {
-        fecha, obra_id, clase_id, hora_despacho, cantidad_m3, asentamiento_cm, usa_probetas, probetas
-      };
-
-      fetch('/api/guardar_parte', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-        .then(r => r.json())
-        .then(resp => {
-          if (resp.ok) {
-            alert('Parte guardado correctamente. ID: ' + (resp.parte_id || ''));
-            parteForm.reset();
-            if (tablaProbetas) tablaProbetas.innerHTML = '';
-            if (probetaSection) probetasSection.style.display = 'none';
-            window.location.reload();
-          } else {
-            alert('Error: ' + (resp.error || 'Error desconocido'));
-          }
-        })
-        .catch(err => {
-          console.error(err);
-          alert('Error guardando parte. Revisá la consola.');
-        });
-    });
   }
 
 });
