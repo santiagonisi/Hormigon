@@ -132,37 +132,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const agregarMaterialBtn = document.getElementById('agregarMaterial') || document.getElementById('agregarFila');
-  const tablaMateriales = document.getElementById('tablaMateriales');
-  if (agregarMaterialBtn && tablaMateriales) {
-    let contador = 0;
-    agregarMaterialBtn.addEventListener('click', () => {
-      contador++;
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td class="text-center">${contador}</td>
-        <td><input type="text" name="material_${contador}" class="form-control" required></td>
-        <td><input type="number" step="0.01" name="cantidad_${contador}" class="form-control" required></td>
-        <td>
-          <select name="unidad_${contador}" class="form-select">
-            <option value="kg">kg</option>
-            <option value="m3">m³</option>
-            <option value="lts">lts</option>
-            <option value="unidades">unidades</option>
-          </select>
-        </td>
-        <td class="text-center">
-          <button type="button" class="btn btn-sm btn-danger eliminar-fila"><i class="bi bi-trash"></i></button>
-        </td>
-      `;
-      tablaMateriales.appendChild(tr);
-    });
-
-    tablaMateriales.addEventListener('click', (e) => {
-      if (e.target.closest('.eliminar-fila')) {
-        e.target.closest('tr').remove();
-      }
-    });
-  }
-
 });
