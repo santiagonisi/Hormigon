@@ -129,48 +129,41 @@ def parte_diario():
 @app.route('/obras')
 def obras():
     page = request.args.get('page', 1, type=int)
-    per_page = 10
+    per_page = 10 
 
-    obras_paginate = Obra.query.paginate(page=page, per_page=per_page)
-    total_pages = obras_paginate.pages
+    obras_paginate = Obra.query.order_by(Obra.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    total_pages = obras_paginate.pages or 1
+
+    formulas = Formula.query.outerjoin(Clase).order_by(Clase.nombre, Formula.nombre).all()
 
     return render_template(
         'obras.html',
         obras=obras_paginate.items,
+        formulas=formulas,
         page=page,
         total_pages=total_pages,
         obras_paginate=obras_paginate
     )
-
 
 @app.route('/formulas')
 def formulas():
     page = request.args.get('page', 1, type=int)
     per_page = 10
 
-    formulas_paginate = Formula.query.paginate(page=page, per_page=per_page)
-    total_pages = formulas_paginate.pages
+    formulas_paginate = Formula.query.order_by(Formula.id.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    total_pages = formulas_paginate.pages or 1
+
+    clases = Clase.query.order_by(Clase.nombre).all()
 
     return render_template(
         'formulas.html',
+        clases=clases,
         formulas=formulas_paginate.items,
         page=page,
         total_pages=total_pages,
         formulas_paginate=formulas_paginate
     )
 
-
-@app.route('/obras')
-def obras_page():
-    obras = Obra.query.order_by(Obra.id.desc()).all()
-    formulas = Formula.query.outerjoin(Clase).order_by(Clase.nombre, Formula.nombre).all()
-    print(f"[DEBUG] obras_page: encontradas {len(formulas)} fórmulas")
-    return render_template('obras.html', obras=obras, formulas=formulas)
-
-@app.route('/formulas')
-def formulas_page():
-    clases = Clase.query.order_by(Clase.nombre).all()
-    return render_template('formulas.html', clases=clases)
 
 @app.route('/informes')
 def informes_page():

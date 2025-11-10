@@ -87,28 +87,37 @@
 
 {% block scripts %}
 <script>
-let contadorFilas = 0;
+document.addEventListener('DOMContentLoaded', () => {
 
-document.getElementById('btnNuevaFormula').addEventListener('click', () => {
   const form = document.getElementById('formFormula');
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
-  if (form.style.display === 'block') {
-    form.scrollIntoView({ behavior: 'smooth' });
-  }
-});
+  const tablaMateriales = document.getElementById('tablaMateriales');
+  const btnAgregar = document.getElementById('agregarMaterial');
+  const btnCancelar = document.getElementById('cancelarFormula');
+  const btnNuevaFormula = document.getElementById('btnNuevaFormula');
 
-document.getElementById('cancelarFormula').addEventListener('click', () => {
-  document.getElementById('formFormula').reset();
-  document.getElementById('tablaMateriales').innerHTML = '';
-  contadorFilas = 0;
-  document.getElementById('formFormula').style.display = 'none';
-});
+  // === Mostrar / Ocultar formulario ===
+  btnNuevaFormula.addEventListener('click', () => {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    if (form.style.display === 'block') form.scrollIntoView({ behavior: 'smooth' });
+  });
 
-document.getElementById('agregarMaterial').addEventListener('click', () => {
-  contadorFilas++;
-  const fila = `
-    <tr data-fila="${contadorFilas}">
-      <td class="text-center fw-semibold">${contadorFilas}</td>
+  btnCancelar.addEventListener('click', () => {
+    form.reset();
+    tablaMateriales.innerHTML = ''; // limpia tabla
+    form.style.display = 'none';
+  });
+
+  // === Agregar una sola fila por click ===
+  btnAgregar.addEventListener('click', () => {
+    // contar cuántas filas hay
+    const filas = tablaMateriales.querySelectorAll('tr').length;
+    const nuevaFila = filas + 1; // número de la nueva fila
+
+    // crear fila
+    const fila = document.createElement('tr');
+    fila.dataset.fila = nuevaFila;
+    fila.innerHTML = `
+      <td class="text-center fw-semibold">${nuevaFila}</td>
       <td><input type="text" class="form-control" name="material[]" required></td>
       <td><input type="number" step="0.01" class="form-control text-end" name="cantidad[]" required></td>
       <td>
@@ -120,102 +129,113 @@ document.getElementById('agregarMaterial').addEventListener('click', () => {
         </select>
       </td>
       <td class="text-center">
-        <button type="button" class="btn btn-sm btn-danger" onclick="eliminarFila(${contadorFilas})">
+        <button type="button" class="btn btn-sm btn-danger eliminarFila">
           <i class="bi bi-trash"></i>
         </button>
       </td>
-    </tr>`;
-  document.getElementById('tablaMateriales').insertAdjacentHTML('beforeend', fila);
-});
+    `;
+    tablaMateriales.appendChild(fila);
+  });
 
-function eliminarFila(id) {
-  const fila = document.querySelector(`tr[data-fila="${id}"]`);
-  if (fila) fila.remove();
-}
-
-document.getElementById('formFormula').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const data = {
-    clase_id: formData.get('clase_id'),
-    nombre: formData.get('nombre'),
-    items: Array.from(document.querySelectorAll('#tablaMateriales tr')).map(row => ({
-      material: row.querySelector('[name="material[]"]').value,
-      cantidad: parseFloat(row.querySelector('[name="cantidad[]"]').value),
-      unidad: row.querySelector('[name="unidad[]"]').value
-    }))
-  };
-
-  if (data.items.length === 0) {
-    alert('Debe agregar al menos un material.');
-    return;
-  }
-
-  try {
-    const response = await fetch('/api/guardar_formula', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(data)
-    });
-    const result = await response.json();
-    if (result.ok) {
-      alert('✅ Fórmula guardada exitosamente');
-      cargarFormulas();
-      e.target.reset();
-      document.getElementById('tablaMateriales').innerHTML = '';
-      contadorFilas = 0;
-      document.getElementById('formFormula').style.display = 'none';
-    } else {
-      alert('Error: ' + result.error);
+  // === Eliminar fila individual ===
+  tablaMateriales.addEventListener('click', (e) => {
+    if (e.target.closest('.eliminarFila')) {
+      e.target.closest('tr').remove();
+      // renumerar
+      tablaMateriales.querySelectorAll('tr').forEach((tr, i) => {
+        tr.dataset.fila = i + 1;
+        tr.querySelector('td:first-child').textContent = i + 1;
+      });
     }
-  } catch (error) {
-    console.error(error);
-    alert('Error al guardar la fórmula');
-  }
-});
+  });
 
-async function cargarFormulas() {
-  try {
-    const response = await fetch('/api/formulas');
-    const formulas = await response.json();
+  // === Guardar fórmula ===
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const data = {
+      clase_id: formData.get('clase_id'),
+      nombre: formData.get('nombre'),
+      items: Array.from(tablaMateriales.querySelectorAll('tr')).map(row => ({
+        material: row.querySelector('[name="material[]"]').value,
+        cantidad: parseFloat(row.querySelector('[name="cantidad[]"]').value),
+        unidad: row.querySelector('[name="unidad[]"]').value
+      }))
+    };
 
-    const html = formulas.map(f => `
-      <div class="col-md-6 col-lg-4">
-        <div class="card h-100 shadow-sm">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-              <h6 class="fw-semibold mb-0">${f.clase_nombre} — ${f.nombre}</h6>
-              <button class="btn btn-sm btn-danger btn-delete-formula" data-id="${f.id}" title="Eliminar">
-                <i class="bi bi-trash"></i>
-              </button>
-            </div>
-            <div class="small text-muted">
-              ${f.items.map(i => `<div>${i.material}: <b>${i.cantidad}</b> ${i.unidad}</div>`).join('')}
+    if (data.items.length === 0) {
+      alert('Debe agregar al menos un material.');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/guardar_formula', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+      const result = await response.json();
+      if (result.ok) {
+        alert('✅ Fórmula guardada exitosamente');
+        cargarFormulas();
+        form.reset();
+        tablaMateriales.innerHTML = '';
+        form.style.display = 'none';
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('Error al guardar la fórmula');
+    }
+  });
+
+  // === Cargar fórmulas ===
+  async function cargarFormulas() {
+    try {
+      const response = await fetch('/api/formulas');
+      const formulas = await response.json();
+
+      const html = formulas.map(f => `
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <h6 class="fw-semibold mb-0">${f.clase_nombre} — ${f.nombre}</h6>
+                <button class="btn btn-sm btn-danger btn-delete-formula" data-id="${f.id}" title="Eliminar">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </div>
+              <div class="small text-muted">
+                ${f.items.map(i => `<div>${i.material}: <b>${i.cantidad}</b> ${i.unidad}</div>`).join('')}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `).join('');
 
-    document.getElementById('formulasExistentes').innerHTML = html || '<p class="text-muted">No hay fórmulas registradas.</p>';
+      document.getElementById('formulasExistentes').innerHTML =
+        html || '<p class="text-muted">No hay fórmulas registradas.</p>';
 
-    document.querySelectorAll('.btn-delete-formula').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const id = btn.dataset.id;
-        if (!confirm('¿Eliminar esta fórmula?')) return;
-        const resp = await fetch(`/api/formulas/${id}`, { method: 'DELETE' });
-        const data = await resp.json();
-        if (data.ok) cargarFormulas();
-        else alert('Error: ' + data.error);
+      document.querySelectorAll('.btn-delete-formula').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          if (!confirm('¿Eliminar esta fórmula?')) return;
+          const resp = await fetch(`/api/formulas/${id}`, { method: 'DELETE' });
+          const data = await resp.json();
+          if (data.ok) cargarFormulas();
+          else alert('Error: ' + data.error);
+        });
       });
-    });
 
-  } catch (error) {
-    console.error(error);
-    document.getElementById('formulasExistentes').innerHTML = '<p class="text-danger">Error al cargar fórmulas.</p>';
+    } catch (error) {
+      console.error(error);
+      document.getElementById('formulasExistentes').innerHTML =
+        '<p class="text-danger">Error al cargar fórmulas.</p>';
+    }
   }
-}
 
-cargarFormulas();
+  cargarFormulas();
+});
 </script>
 {% endblock %}

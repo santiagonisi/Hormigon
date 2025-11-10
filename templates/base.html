@@ -47,10 +47,10 @@
                         <a class="nav-link {% if request.path.startswith('/parte_diario') %}active{% endif %}" href="{{ url_for('parte_diario') }}">Parte Diario</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path.startswith('/obras') %}active{% endif %}" href="{{ url_for('obras_page') }}">Obras</a>
+                        <a class="nav-link {% if request.path.startswith('/obras') %}active{% endif %}" href="{{ url_for('obras') }}">Obras</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link {% if request.path.startswith('/formulas') %}active{% endif %}" href="{{ url_for('formulas_page') }}">Fórmulas</a>
+                        <a class="nav-link {% if request.path.startswith('/formulas') %}active{% endif %}" href="{{ url_for('formulas') }}">Fórmulas</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.path.startswith('/informes') %}active{% endif %}" href="{{ url_for('informes_page') }}">Informes</a>
