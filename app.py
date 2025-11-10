@@ -158,10 +158,6 @@ def formulas():
                            page=page, total_pages=total_pages, formulas_paginate=formulas_paginate)
 
 
-@app.route('/informes')
-def informes_page():
-    return render_template('informes.html')
-
 
 @app.route('/api/get_clases/<int:obra_id>')
 def api_get_clases(obra_id):
@@ -362,6 +358,34 @@ def api_eliminar_formula(formula_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 400
+
+@app.route('/informes', endpoint='informes')
+def informes_page():
+
+    clases_db = Clase.query.all()
+    clases = sorted(clases_db, key=lambda c: int(''.join(filter(str.isdigit, c.nombre))))
+
+    asentamientos_reales = []
+    for clase in clases:
+        partes = (
+            ParteDiario.query
+            .filter(ParteDiario.clase_id == clase.id, ParteDiario.asentamiento_cm.isnot(None))
+            .all()
+        )
+        if partes:
+            promedio = sum(p.asentamiento_cm for p in partes) / len(partes)
+        else:
+            promedio = 0
+        asentamientos_reales.append(promedio)
+
+    asentamientos_ref = [5 for _ in clases]
+
+    return render_template(
+        'informes.html',
+        clases=[c.nombre for c in clases],
+        asentamientos_reales=asentamientos_reales,
+        asentamientos_ref=asentamientos_ref
+    )
 
 
 if __name__ == '__main__':

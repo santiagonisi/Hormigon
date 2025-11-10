@@ -1,2 +1,97 @@
 {% extends "base.html" %}
-{% block title %}Fórmulas — Sistema de Hormigón{% endblock %}
+{% block title %}Informes - Asentamiento{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-center mb-4">Informe de Asentamientos por Clase de Hormigón</h2>
+
+  <div class="card shadow-sm p-4">
+    <canvas id="graficoAsentamiento" height="120"></canvas>
+  </div>
+
+  <div class="text-center mt-4">
+    <small class="text-muted">
+      El gráfico muestra el asentamiento promedio (cm) por clase de hormigón.<br>
+      La línea punteada indica el valor de referencia esperado.
+    </small>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const clases = {{ clases | tojson }};
+  const asentamientosReales = {{ asentamientos_reales | tojson }};
+  const asentamientosRef = {{ asentamientos_ref | tojson }};
+
+  const ctx = document.getElementById('graficoAsentamiento').getContext('2d');
+
+  const data = {
+    labels: clases,
+    datasets: [
+      {
+        label: 'Asentamiento real (cm)',
+        data: asentamientosReales,
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1,
+        hoverBackgroundColor: 'rgba(54, 162, 235, 0.8)',
+      },
+      {
+        label: 'Referencia (cm)',
+        data: asentamientosRef,
+        type: 'line',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 2,
+        borderDash: [5, 5],
+        fill: false,
+        pointRadius: 0
+      }
+    ]
+  };
+
+  const config = {
+    type: 'bar',
+    data: data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} cm`;
+            }
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Asentamiento (cm)'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Clase de Hormigón'
+          }
+        }
+      },
+      onClick: function(evt, elements) {
+        if (elements.length > 0) {
+          const index = elements[0].index;
+          const clase = clases[index];
+          window.location.href = `/informes/${clase}`;
+        }
+      }
+    }
+  };
+
+  new Chart(ctx, config);
+</script>
+{% endblock %}
