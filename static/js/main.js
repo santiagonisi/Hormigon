@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-  // === BOTÓN "VOLVER ARRIBA" ===
   const btnTop = document.getElementById('scrollTopButton');
   if (btnTop) {
     window.addEventListener('scroll', () => {
@@ -13,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // === CARGAR CLASES SEGÚN OBRA ===
+  
   const selectObra = document.getElementById('selectObra');
   const selectClase = document.getElementById('selectClase');
 
@@ -45,7 +44,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // === SECCIÓN DE PROBETAS ===
   const checkProbetas = document.getElementById('checkProbetas');
   const probetasSection = document.getElementById('probetasSection');
   const tablaProbetas = document.getElementById('tablaProbetas');
