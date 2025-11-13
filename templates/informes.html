@@ -83,12 +83,13 @@
         }
       },
       onClick: function(evt, elements) {
-        if (elements.length > 0) {
-          const index = elements[0].index;
-          const clase = clases[index];
-          window.location.href = `/informes/${clase}`;
-        }
-      }
+  if (elements.length > 0) {
+    const index = elements[0].index;
+    const clase = clases[index];
+    // encodeURIComponent evita errores con espacios o guiones
+    window.location.href = `/informes/${encodeURIComponent(clase)}`;
+  }
+}
     }
   };
 

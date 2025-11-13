@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Detalle de Asentamientos - {{ clase_nombre }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="text-center mb-4">Evolución del Asentamiento - {{ clase_nombre }}</h2>
+
+  <div class="card shadow-sm p-4">
+    <canvas id="graficoDetalle" height="120"></canvas>
+  </div>
+
+  <div class="text-center mt-4">
+    <small class="text-muted">
+      El gráfico muestra la evolución del asentamiento (cm) por fecha.<br>
+      La línea punteada indica la tolerancia de ±2 cm respecto al promedio.
+    </small>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const fechas = {{ fechas | tojson }};
+  const asentamientos = {{ asentamientos | tojson }};
+  const promedio = {{ promedio | tojson }};
+
+  const ctx = document.getElementById('graficoDetalle').getContext('2d');
+
+  const data = {
+    labels: fechas,
+    datasets: [
+      {
+        label: 'Asentamiento (cm)',
+        data: asentamientos,
+        borderColor: 'rgba(54, 162, 235, 1)',
+        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+        tension: 0.3,
+        fill: false
+      },
+      {
+        label: 'Límite +2 cm',
+        data: fechas.map(() => promedio + 2),
+        borderColor: 'rgba(255, 99, 132, 0.8)',
+        borderDash: [5, 5],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false
+      },
+      {
+        label: 'Límite -2 cm',
+        data: fechas.map(() => promedio - 2),
+        borderColor: 'rgba(255, 99, 132, 0.8)',
+        borderDash: [5, 5],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false
+      },
+      {
+        label: 'Promedio general',
+        data: fechas.map(() => promedio),
+        borderColor: 'rgba(75, 192, 192, 0.8)',
+        borderDash: [3, 3],
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: false
+      }
+    ]
+  };
+
+  const config = {
+    type: 'line',
+    data: data,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Asentamiento (cm)'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Fecha'
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} cm`;
+            }
+          }
+        }
+      }
+    }
+  };
+
+  new Chart(ctx, config);
+</script>
+{% endblock %}

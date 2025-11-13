@@ -5,6 +5,7 @@ import os
 from sqlalchemy import event
 import sqlite3
 from sqlalchemy.engine import Engine
+from statistics import mean
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
@@ -387,6 +388,62 @@ def informes_page():
         asentamientos_ref=asentamientos_ref
     )
 
+@app.route('/informes/<clase_nombre>')
+def informes_detalle(clase_nombre):
+    clase = Clase.query.filter_by(nombre=clase_nombre).first_or_404()
+
+    partes = (
+        ParteDiario.query
+        .filter_by(clase_id=clase.id)
+        .filter(ParteDiario.asentamiento_cm.isnot(None))
+        .order_by(ParteDiario.fecha.asc())
+        .all()
+    )
+
+    if not partes:
+        return render_template(
+            'informes_detalle.html',
+            clase_nombre=clase_nombre,
+            fechas=[],
+            asentamientos=[],
+            promedio=None,
+            promedio_verano=None,
+            promedio_invierno=None
+        )
+
+    fechas = [p.fecha.strftime('%Y-%m-%d') for p in partes]
+    asentamientos = [p.asentamiento_cm for p in partes]
+
+    promedio = mean(asentamientos)
+
+    # Líneas de referencia
+    ref_sup = promedio + 2
+    ref_inf = promedio - 2
+
+    # Promedios estacionales
+    def es_verano(m):
+        return m in [12, 1, 2]
+
+    def es_invierno(m):
+        return m in [6, 7, 8]
+
+    asentamientos_verano = [p.asentamiento_cm for p in partes if es_verano(p.fecha.month)]
+    asentamientos_invierno = [p.asentamiento_cm for p in partes if es_invierno(p.fecha.month)]
+
+    promedio_verano = mean(asentamientos_verano) if asentamientos_verano else None
+    promedio_invierno = mean(asentamientos_invierno) if asentamientos_invierno else None
+
+    return render_template(
+        'informes_detalle.html',
+        clase_nombre=clase_nombre,
+        fechas=fechas,
+        asentamientos=asentamientos,
+        promedio=promedio,
+        ref_sup=ref_sup,
+        ref_inf=ref_inf,
+        promedio_verano=promedio_verano,
+        promedio_invierno=promedio_invierno
+    )
 
 if __name__ == '__main__':
     with app.app_context():
