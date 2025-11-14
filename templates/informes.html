@@ -1,104 +1,72 @@
 {% extends "base.html" %}
-{% block title %}Informes - Asentamiento{% endblock %}
+{% block title %}Informes{% endblock %}
 
 {% block content %}
-<div class="card shadow p-4">
+<div class="container mt-4">
 
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="mb-0 fw-semibold text-dark">Informe de Asentamientos</h4>
+  <div class="card shadow p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="mb-0 fw-semibold">Promedio de Asentamientos por Clase</h4>
+    </div>
+
+    <canvas id="graficoAsentamiento" height="120"></canvas>
   </div>
 
-  <!-- CONTENEDOR CON ALTURA FIJA -->
-  <div style="height: 350px;">
-      <canvas id="graficoAsentamiento"></canvas>
-  </div>
-
-</div>
-
-  <div class="text-center mt-4">
-    <small class="text-muted">
-      El gráfico muestra el asentamiento promedio (cm) por clase de hormigón.<br>
-      La línea punteada indica el valor de referencia esperado.
-    </small>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const clases = {{ clases | tojson }};
-  const asentamientosReales = {{ asentamientos_reales | tojson }};
-  const asentamientosRef = {{ asentamientos_ref | tojson }};
+  const clases = [
+    {% for d in datos %}
+      "{{ d.nombre }} ({{ d.mpa }} MPa)"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
 
-  const ctx = document.getElementById('graficoAsentamiento').getContext('2d');
+  const asentamientos = [
+    {% for d in datos %}
+      {{ d.cantidad }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
 
-  const data = {
-    labels: clases,
-    datasets: [
-      {
-        label: 'Asentamiento real (cm)',
-        data: asentamientosReales,
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
-        hoverBackgroundColor: 'rgba(54, 162, 235, 0.8)',
-      },
-      {
-        label: 'Referencia (cm)',
-        data: asentamientosRef,
-        type: 'line',
-        borderColor: 'rgba(255, 99, 132, 1)',
-        borderWidth: 2,
-        borderDash: [5, 5],
-        fill: false,
-        pointRadius: 0
-      }
-    ]
-  };
+  const clasesURL = [
+    {% for d in datos %}
+      "{{ d.nombre }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
 
-  const config = {
-    type: 'bar',
-    data: data,
+  const ctx = document.getElementById("graficoAsentamiento").getContext("2d");
+
+  const chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: clases,
+      datasets: [{
+        label: "Asentamiento promedio (cm)",
+        data: asentamientos,
+        backgroundColor: "rgba(54,162,235,0.6)",
+        borderColor: "rgba(54,162,235,1)",
+        borderWidth: 1
+      }]
+    },
     options: {
       responsive: true,
-      maintainAspectRatio: false,
       plugins: {
-        legend: {
-          position: 'bottom'
-        },
         tooltip: {
           callbacks: {
-            label: function(context) {
-              return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} cm`;
-            }
+            label: (ctx) =>
+              ` ${ctx.raw.toFixed(2)} cm`
           }
         }
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Asentamiento (cm)'
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Clase de Hormigón'
-          }
+      onClick: (evt, elements) => {
+        if (elements.length > 0) {
+          const idx = elements[0].index;
+          const clase = clasesURL[idx];
+          window.location.href = `/informes/${clase}`;
         }
-      },
-      onClick: function(evt, elements) {
-  if (elements.length > 0) {
-    const index = elements[0].index;
-    const clase = clases[index];
-    // encodeURIComponent evita errores con espacios o guiones
-    window.location.href = `/informes/${encodeURIComponent(clase)}`;
-  }
-}
+      }
     }
-  };
-
-  new Chart(ctx, config);
+  });
 </script>
+
 {% endblock %}
