@@ -7,19 +7,17 @@
     <h4 class="fw-semibold mb-0"><i class="bi bi-journal-text me-2 text-warning"></i>Parte Diario de Hormigón</h4>
   </div>
 
-
 <style>
 :root{
   --action-btn-width: 38px;
   --action-gap: 0.5rem;
 }
 
-
+/* Ajustes generales */
 td .btn {
   padding: 0.25rem 0.45rem;
   line-height: 1;
 }
-
 
 .actions-group {
   display: flex;
@@ -28,18 +26,15 @@ td .btn {
   gap: var(--action-gap);
 }
 
-
 .top-buttons {
   display: flex;
   gap: var(--action-gap);
   justify-content: center;
 }
 
-
 .top-buttons .btn {
   width: var(--action-btn-width);
 }
-
 
 .view-button {
   width: calc((2 * var(--action-btn-width)) + var(--action-gap));
@@ -47,9 +42,21 @@ td .btn {
   justify-content: center;
   align-items: center;
 }
+
+/* Indicador visual de roturas */
+.indicador-rotura {
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 8px;
+}
+.indicador-verde { background-color: #28a745; }
+.indicador-gris { background-color: #adb5bd; }
+
 </style>
 
-
+  <!-- FORMULARIO -->
   <form id="parteForm" class="mb-4">
     <div class="row g-3">
       <div class="col-sm-3 col-md-2">
@@ -103,6 +110,7 @@ td .btn {
     </div>
   </form>
 
+  <!-- PROBETAS -->
   <div id="probetasSection" class="mt-4 mb-3" style="display:none;">
     <h6 class="fw-semibold text-dark mb-3"><i class="bi bi-flask me-2 text-warning"></i>Probetas (hasta 3)</h6>
     <div class="table-responsive">
@@ -121,6 +129,35 @@ td .btn {
     </div>
     <small class="text-muted">Lectura y Resistencia no son obligatorias; podés completarlas después.</small>
   </div>
+</div>
+
+<div class="card shadow-sm p-3 my-4" style="border-radius: 10px;">
+    <h4 class="fw-semibold mb-3" style="color:#000;">
+        {% if roturas_hoy %}
+            <span class="indicador-rotura indicador-verde"></span>
+        {% else %}
+            <span class="indicador-rotura indicador-gris"></span>
+        {% endif %}
+        <i class="bi bi-hammer text-warning me-2"></i>
+        Roturas de hoy – {{ hoy.strftime('%d/%m/%Y') }}
+    </h4>
+
+    {% if roturas_hoy %}
+        <ul class="list-group list-group-flush">
+            {% for parte in roturas_hoy %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong style="color:#000;">Código:</strong> {{ parte.codigo }}<br>
+                        <small class="text-muted">
+                            Moldeado el: {{ parte.fecha.strftime('%d/%m/%Y') }}
+                        </small>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-muted text-center mb-1">No hay roturas programadas para hoy.</p>
+    {% endif %}
 </div>
 
 <div class="card shadow-lg p-4 mt-4">
@@ -432,4 +469,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 {% endblock %}
-

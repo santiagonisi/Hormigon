@@ -6,6 +6,8 @@ from sqlalchemy import event
 import sqlite3
 from sqlalchemy.engine import Engine
 from statistics import mean
+from datetime import date
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'database.db')
@@ -129,13 +131,38 @@ def index():
 def parte_diario():
     page = request.args.get('page', 1, type=int)
     per_page = 10
+
+    hoy = date.today()
+
+    roturas = (
+        Probeta.query
+        .filter(Probeta.fecha_ensayo == hoy)
+        .all()
+    )
+
+    roturas_hoy = []
+    for prob in roturas:
+        if prob.parte not in roturas_hoy:
+            roturas_hoy.append(prob.parte)
+
     obras = Obra.query.order_by(Obra.nombre).all()
-    partes = ParteDiario.query.order_by(ParteDiario.fecha.desc(), ParteDiario.id.desc()).paginate(
-        page=page, per_page=per_page, error_out=False)
+
+    partes = ParteDiario.query.order_by(
+        ParteDiario.fecha.desc(),
+        ParteDiario.id.desc()
+    ).paginate(page=page, per_page=per_page, error_out=False)
+
     total_pages = partes.pages if partes.pages >= 1 else 1
-    return render_template('parte_diario.html', obras=obras, partes=partes, page=page, total_pages=total_pages)
 
-
+    return render_template(
+        'parte_diario.html',
+        obras=obras,
+        partes=partes,
+        hoy=hoy,
+        roturas_hoy=roturas_hoy,
+        page=page,
+        total_pages=total_pages
+    )
 @app.route('/obras')
 def obras():
     page = request.args.get('page', 1, type=int)
@@ -364,27 +391,41 @@ def api_eliminar_formula(formula_id):
 def informes_page():
 
     clases_db = Clase.query.all()
-    clases = sorted(clases_db, key=lambda c: int(''.join(filter(str.isdigit, c.nombre))))
 
-    asentamientos_reales = []
-    for clase in clases:
+    datos = []
+
+    for c in clases_db:
+        try:
+            mpa = int(''.join(filter(str.isdigit, c.nombre)))
+        except:
+            mpa = 0
+
         partes = (
             ParteDiario.query
-            .filter(ParteDiario.clase_id == clase.id, ParteDiario.asentamiento_cm.isnot(None))
+            .filter(ParteDiario.clase_id == c.id, ParteDiario.asentamiento_cm.isnot(None))
             .all()
         )
+
         if partes:
             promedio = sum(p.asentamiento_cm for p in partes) / len(partes)
         else:
             promedio = 0
-        asentamientos_reales.append(promedio)
 
-    asentamientos_ref = [5 for _ in clases]
+        datos.append({
+            "nombre": c.nombre,
+            "mpa": mpa,
+            "promedio": promedio
+        })
+
+    datos.sort(key=lambda x: x["mpa"])
+
+    asentamientos_ref = [5 for _ in datos]
 
     return render_template(
         'informes.html',
-        clases=[c.nombre for c in clases],
-        asentamientos_reales=asentamientos_reales,
+        datos=datos,
+        clases=[f"{d['nombre']} ({d['mpa']} MPa)" for d in datos],
+        asentamientos_reales=[d["promedio"] for d in datos],
         asentamientos_ref=asentamientos_ref
     )
 
