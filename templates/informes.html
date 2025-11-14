@@ -2,12 +2,18 @@
 {% block title %}Informes - Asentamiento{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-  <h2 class="text-center mb-4">Informe de Asentamientos por Clase de Hormigón</h2>
+<div class="card shadow p-4">
 
-  <div class="card shadow-sm p-4">
-    <canvas id="graficoAsentamiento" height="120"></canvas>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0 fw-semibold text-dark">Informe de Asentamientos</h4>
   </div>
+
+  <!-- CONTENEDOR CON ALTURA FIJA -->
+  <div style="height: 350px;">
+      <canvas id="graficoAsentamiento"></canvas>
+  </div>
+
+</div>
 
   <div class="text-center mt-4">
     <small class="text-muted">
