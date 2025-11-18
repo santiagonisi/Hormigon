@@ -13,7 +13,6 @@
   --action-gap: 0.5rem;
 }
 
-/* Ajustes generales */
 td .btn {
   padding: 0.25rem 0.45rem;
   line-height: 1;
@@ -43,7 +42,6 @@ td .btn {
   align-items: center;
 }
 
-/* Indicador visual de roturas */
 .indicador-rotura {
     width: 13px;
     height: 13px;
@@ -56,7 +54,6 @@ td .btn {
 
 </style>
 
-  <!-- FORMULARIO -->
   <form id="parteForm" class="mb-4">
     <div class="row g-3">
       <div class="col-sm-3 col-md-2">
@@ -110,7 +107,6 @@ td .btn {
     </div>
   </form>
 
-  <!-- PROBETAS -->
   <div id="probetasSection" class="mt-4 mb-3" style="display:none;">
     <h6 class="fw-semibold text-dark mb-3"><i class="bi bi-flask me-2 text-warning"></i>Probetas (hasta 3)</h6>
     <div class="table-responsive">
@@ -147,7 +143,8 @@ td .btn {
             {% for parte in roturas_hoy %}
                 <li class="list-group-item d-flex justify-content-between align-items-center">
                     <div>
-                        <strong style="color:#000;">Código:</strong> {{ parte.codigo }}<br>
+                        <strong style="color:#000;">Parte ID:</strong> {{ parte.id }}<br>
+                        <strong style="color:#000;">Obra:</strong> {{ parte.obra.nombre }}<br>
                         <small class="text-muted">
                             Moldeado el: {{ parte.fecha.strftime('%d/%m/%Y') }}
                         </small>
@@ -274,7 +271,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const probetasSection = document.getElementById('probetasSection');
   const tablaProbetas = document.getElementById('tablaProbetas');
 
-  
   const probetasModal = new bootstrap.Modal(document.getElementById('probetasModal'));
   const modalTablaProbetas = document.getElementById('modalTablaProbetas');
 
@@ -409,12 +405,19 @@ document.addEventListener('DOMContentLoaded', () => {
     if (payload.usa_probetas) {
       const rows = tablaProbetas.querySelectorAll('tr');
       rows.forEach((r, idx) => {
-        payload.probetas.push({
-          fecha_ensayo: r.querySelector(`input[name="fecha_ensayo_${idx+1}"]`).value || null,
-          edad: r.querySelector(`input[name="edad_${idx+1}"]`).value || null,
-          lectura: r.querySelector(`input[name="lectura_${idx+1}"]`).value || null,
-          resistencia: r.querySelector(`input[name="resistencia_${idx+1}"]`).value || null
-        });
+        const fechaInput = r.querySelector(`input[name="fecha_ensayo_${idx+1}"]`);
+        const edadInput = r.querySelector(`input[name="edad_${idx+1}"]`);
+        const lecturaInput = r.querySelector(`input[name="lectura_${idx+1}"]`);
+        const resistenciaInput = r.querySelector(`input[name="resistencia_${idx+1}"]`);
+        
+        if (fechaInput.value || edadInput.value || lecturaInput.value || resistenciaInput.value) {
+          payload.probetas.push({
+            fecha_ensayo: fechaInput.value || null,
+            edad: edadInput.value || null,
+            lectura: lecturaInput.value || null,
+            resistencia: resistenciaInput.value || null
+          });
+        }
       });
     }
 

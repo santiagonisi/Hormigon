@@ -24,7 +24,7 @@
 
   const asentamientos = [
     {% for d in datos %}
-      {{ d.cantidad }}{% if not loop.last %},{% endif %}
+      {{ d.promedio }}{% if not loop.last %},{% endif %}
     {% endfor %}
   ];
 
