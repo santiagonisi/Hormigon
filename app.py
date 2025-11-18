@@ -470,6 +470,7 @@ def informes_detalle(clase_nombre):
     return render_template(
         'informes_detalle.html',
         clase_nombre=clase_nombre,
+        clase=clase,
         fechas=fechas,
         asentamientos=asentamientos,
         promedio=promedio,
