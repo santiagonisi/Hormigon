@@ -19,8 +19,8 @@
   const fechas = {{ fechas | tojson }};
   const asentamientos = {{ asentamientos | tojson }};
 
-  const refMas = asentamientos.map(() => 2);
-  const refMenos = asentamientos.map(() => -2);
+  const refMas = asentamientos.map(() => {{ ref_sup|tojson }});
+  const refMenos = asentamientos.map(() => {{ ref_inf|tojson }});
 
   const ctx = document.getElementById("graficoDetalle").getContext("2d");
 
