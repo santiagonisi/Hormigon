@@ -427,26 +427,80 @@ def api_eliminar_formula(formula_id):
 
 @app.route('/informes')
 def informes():
-    clases_db = Clase.query.all()
+
+    clases = Clase.query.all()
     datos = []
-    for c in clases_db:
+
+    OBJETIVOS_RESISTENCIA = {
+        "H8": 8,
+        "H13": 13,
+        "H15": 15,
+        "H17": 17,
+        "H20": 20,
+        "H21": 21,
+        "H25": 25,
+        "H30": 30
+    }
+
+    for c in clases:
+
+        # ================================
+        # ASENTAMIENTO (USAMOS ParteDiario.asentamiento_cm)
+        # ================================
+        partes_con_asent = (
+            ParteDiario.query
+            .filter(ParteDiario.clase_id == c.id)
+            .filter(ParteDiario.asentamiento_cm.isnot(None))
+            .all()
+        )
+
+        asentamientos_vals = [p.asentamiento_cm for p in partes_con_asent]
+
+        if asentamientos_vals:
+            promedio_asentamiento = round(sum(asentamientos_vals) / len(asentamientos_vals), 2)
+        else:
+            promedio_asentamiento = None
+
+        # ================================
+        # RESISTENCIA (Probeta.resistencia_mpa)
+        # ================================
+        probRes = (
+            Probeta.query
+            .join(ParteDiario, Probeta.parte_id == ParteDiario.id)
+            .filter(ParteDiario.clase_id == c.id)
+            .filter(Probeta.resistencia_mpa.isnot(None))
+            .all()
+        )
+
+        if probRes:
+            valores = [p.resistencia_mpa for p in probRes]
+            promedio_resistencia = round(sum(valores) / len(valores), 2)
+        else:
+            promedio_resistencia = None
+
+        objetivo_resistencia = OBJETIVOS_RESISTENCIA.get(c.nombre)
+
+        # ================================
+        # Extraer MPa del nombre (H30 -> 30)
+        # ================================
         try:
             mpa = int(''.join(filter(str.isdigit, c.nombre)))
         except:
             mpa = 0
-        partes = ParteDiario.query.filter(ParteDiario.clase_id==c.id,
-                                          ParteDiario.asentamiento_cm.isnot(None)).all()
-        promedio = sum(p.asentamiento_cm for p in partes)/len(partes) if partes else 0
-        datos.append({'nombre': c.nombre, 'mpa': mpa, 'promedio': promedio})
-    datos.sort(key=lambda x: x['mpa'])
-    asentamientos_ref = [5 for _ in datos]
-    return render_template(
-        'informes.html',
-        datos=datos,
-        clases=[f"{d['nombre']} ({d['mpa']} MPa)" for d in datos],
-        asentamientos_reales=[d['promedio'] for d in datos],
-        asentamientos_ref=asentamientos_ref
-    )
+
+        datos.append({
+            "nombre": c.nombre,
+            "mpa": mpa,
+            "promedio": promedio_asentamiento,            # para asentamiento (asentamiento_cm)
+            "promedio_resistencia": promedio_resistencia, # para resistencia (resistencia_mpa)
+            "objetivo_resistencia": objetivo_resistencia  # línea objetivo
+        })
+
+    # Ordenar por MPa (H8 < H13 < H17 < H20...)
+    datos.sort(key=lambda x: x["mpa"])
+
+    return render_template("informes.html", datos=datos)
+
 
 @app.route('/informes/<clase_nombre>')
 def informes_detalle(clase_nombre):
@@ -480,6 +534,7 @@ def informes_detalle(clase_nombre):
         promedio_invierno=promedio_invierno
     )
     
+
 if __name__ == '__main__':
     with app.app_context():
         create_and_seed_db()

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container mt-4">
 
-  <div class="card shadow p-4">
+  <div class="card shadow p-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h4 class="mb-0 fw-semibold">Promedio de Asentamientos por Clase</h4>
     </div>
@@ -12,10 +12,22 @@
     <canvas id="graficoAsentamiento" height="120"></canvas>
   </div>
 
+  <div class="card shadow p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="mb-0 fw-semibold">Resistencia Promedio por Tipo de Hormigón (MPa)</h4>
+    </div>
+
+    <canvas id="graficoResistencia" height="120"></canvas>
+  </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script>
+
+  /* ================= ASENTAMIENTO ================= */
+
   const clases = [
     {% for d in datos %}
       "{{ d.nombre }} ({{ d.mpa }} MPa)"{% if not loop.last %},{% endif %}
@@ -24,7 +36,7 @@
 
   const asentamientos = [
     {% for d in datos %}
-      {{ d.promedio }}{% if not loop.last %},{% endif %}
+      {{ d.promedio if d.promedio is not none else 'null' }}{% if not loop.last %},{% endif %}
     {% endfor %}
   ];
 
@@ -34,9 +46,9 @@
     {% endfor %}
   ];
 
-  const ctx = document.getElementById("graficoAsentamiento").getContext("2d");
+  const ctx1 = document.getElementById("graficoAsentamiento").getContext("2d");
 
-  const chart = new Chart(ctx, {
+  new Chart(ctx1, {
     type: "bar",
     data: {
       labels: clases,
@@ -53,8 +65,7 @@
       plugins: {
         tooltip: {
           callbacks: {
-            label: (ctx) =>
-              ` ${ctx.raw.toFixed(2)} cm`
+            label: (ctx) => ` ${ctx.raw?.toFixed ? ctx.raw.toFixed(2) : "Sin datos"} cm`
           }
         }
       },
@@ -67,6 +78,68 @@
       }
     }
   });
+
+  /* ================= RESISTENCIA ================= */
+
+  const tipos = [
+    {% for d in datos %}
+      "{{ d.nombre }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  const promediosRes = [
+    {% for d in datos %}
+      {{ d.promedio_resistencia if d.promedio_resistencia is not none else 'null' }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  const objetivosRes = [
+    {% for d in datos %}
+      {{ d.objetivo_resistencia if d.objetivo_resistencia is not none else 'null' }}{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  const ctx2 = document.getElementById("graficoResistencia").getContext("2d");
+
+  new Chart(ctx2, {
+    type: "bar",
+    data: {
+      labels: tipos,
+      datasets: [
+        {
+          label: "Resistencia promedio (MPa)",
+          data: promediosRes,
+          borderWidth: 1
+        },
+        {
+          label: "Objetivo (MPa)",
+          type: "line",
+          data: objetivosRes,
+          borderWidth: 2,
+          borderDash: [6, 4],
+          fill: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: (ctx) => ` ${ctx.raw ?? "Sin datos"} MPa`
+          }
+        },
+        legend: { position: "bottom" }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          title: { display: true, text: "MPa" }
+        }
+      }
+    }
+  });
+
 </script>
 
 {% endblock %}
