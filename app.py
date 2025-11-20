@@ -444,9 +444,7 @@ def informes():
 
     for c in clases:
 
-        # ================================
-        # ASENTAMIENTO (USAMOS ParteDiario.asentamiento_cm)
-        # ================================
+
         partes_con_asent = (
             ParteDiario.query
             .filter(ParteDiario.clase_id == c.id)
@@ -461,9 +459,7 @@ def informes():
         else:
             promedio_asentamiento = None
 
-        # ================================
-        # RESISTENCIA (Probeta.resistencia_mpa)
-        # ================================
+
         probRes = (
             Probeta.query
             .join(ParteDiario, Probeta.parte_id == ParteDiario.id)
@@ -480,9 +476,7 @@ def informes():
 
         objetivo_resistencia = OBJETIVOS_RESISTENCIA.get(c.nombre)
 
-        # ================================
-        # Extraer MPa del nombre (H30 -> 30)
-        # ================================
+
         try:
             mpa = int(''.join(filter(str.isdigit, c.nombre)))
         except:
@@ -491,12 +485,11 @@ def informes():
         datos.append({
             "nombre": c.nombre,
             "mpa": mpa,
-            "promedio": promedio_asentamiento,            # para asentamiento (asentamiento_cm)
-            "promedio_resistencia": promedio_resistencia, # para resistencia (resistencia_mpa)
-            "objetivo_resistencia": objetivo_resistencia  # línea objetivo
+            "promedio": promedio_asentamiento,
+            "promedio_resistencia": promedio_resistencia,
+            "objetivo_resistencia": objetivo_resistencia
         })
 
-    # Ordenar por MPa (H8 < H13 < H17 < H20...)
     datos.sort(key=lambda x: x["mpa"])
 
     return render_template("informes.html", datos=datos)
