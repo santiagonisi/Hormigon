@@ -107,7 +107,8 @@ def create_and_seed_db():
             Clase(nombre='H20', descripcion='Hormigón H20'),
             Clase(nombre='H21', descripcion='Hormigón H21'),
             Clase(nombre='H25', descripcion='Hormigón H25'),
-            Clase(nombre='H30', descripcion='Hormigón H30')
+            Clase(nombre='H30', descripcion='Hormigón H30'),
+            Clase(nombre='RDC', descripcion='RDC')
         ]
         db.session.add_all(clases)
         db.session.commit()
