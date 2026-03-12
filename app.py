@@ -98,20 +98,30 @@ class Probeta(db.Model):
 
 def create_and_seed_db():
     db.create_all()
-    if Clase.query.count() == 0:
-        clases = [
-            Clase(nombre='H8', descripcion='Hormigón H8'),
-            Clase(nombre='H13', descripcion='Hormigón H13'),
-            Clase(nombre='H15', descripcion='Hormigón H15'),
-            Clase(nombre='H17', descripcion='Hormigón H17'),
-            Clase(nombre='H20', descripcion='Hormigón H20'),
-            Clase(nombre='H21', descripcion='Hormigón H21'),
-            Clase(nombre='H25', descripcion='Hormigón H25'),
-            Clase(nombre='H30', descripcion='Hormigón H30'),
-            Clase(nombre='RDC', descripcion='RDC')
-        ]
-        db.session.add_all(clases)
+    clases_seed = [
+        ('H8', 'Hormigón H8'),
+        ('H13', 'Hormigón H13'),
+        ('H15', 'Hormigón H15'),
+        ('H17', 'Hormigón H17'),
+        ('H20', 'Hormigón H20'),
+        ('H21', 'Hormigón H21'),
+        ('H25', 'Hormigón H25'),
+        ('H30', 'Hormigón H30'),
+        ('RDC', 'RDC')
+    ]
+
+    existentes = {c.nombre for c in Clase.query.with_entities(Clase.nombre).all()}
+    nuevas = [Clase(nombre=nombre, descripcion=descripcion)
+              for nombre, descripcion in clases_seed
+              if nombre not in existentes]
+
+    if nuevas:
+        db.session.add_all(nuevas)
         db.session.commit()
+
+
+with app.app_context():
+    create_and_seed_db()
 
 
 @app.route('/')
@@ -530,6 +540,4 @@ def informes_detalle(clase_nombre):
     
 
 if __name__ == '__main__':
-    with app.app_context():
-        create_and_seed_db()
     app.run(debug=True)
