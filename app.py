@@ -107,6 +107,8 @@ def create_and_seed_db():
         ('H21', 'Hormigón H21'),
         ('H25', 'Hormigón H25'),
         ('H30', 'Hormigón H30'),
+        ('H35', 'Hormigón H35'),
+        ('H40', 'Hormigón H40'),
         ('RDC', 'RDC')
     ]
 
