@@ -1,4 +1,30 @@
-# 👷‍♂️🧱Hormigon
-<img width="200" height="200" alt="isologo IARSA" src="https://github.com/user-attachments/assets/4bd836db-d7fd-4ec8-a75a-04e7dc8342c4" />
+# Hormigón
 
-Ejecutable análisis de produccion y creacion de informes de hormigon
+Sistema para el análisis de producción y la generación de informes de hormigón.
+
+## Stack
+
+- **Backend:** Python + Flask
+- **ORM:** Flask-SQLAlchemy + SQLAlchemy
+- **Base de datos:** SQLite
+- **Servidor:** Gunicorn
+- **Vistas:** Jinja2
+
+## Estructura del proyecto
+
+```
+Hormigon/
+├── static/               # CSS, JavaScript y recursos estáticos
+├── templates/            # Plantillas de la interfaz
+├── app.py                # Aplicación principal
+├── requirements.txt      # Dependencias de Python
+└── database.db           # Base de datos local
+```
+
+## Módulos
+
+- **Producción:** registro y seguimiento de la producción de hormigón.
+- **Análisis:** evaluación de resultados y parámetros de producción.
+- **Resistencia:** cálculos y control de resistencia del hormigón.
+- **Informes:** generación de reportes operativos.
+- **Interfaz web:** consulta y gestión de la información.
